@@ -1,0 +1,2889 @@
+{
+  "metadata": {
+    "source": "OpenEV Data",
+    "source_version": "1.24.0",
+    "source_schema_version": "1.0.0",
+    "source_generated_at": "2025-12-30T18:56:57.274514516+00:00",
+    "normalized_schema_version": "1.0.0",
+    "license": "CDLA-Permissive-2.0",
+    "source_record_count": 1189,
+    "selected_record_count": 100,
+    "normalized_record_count": 100,
+    "duplicates_removed": 0,
+    "manufacturer_limits": {
+      "Tesla": 18,
+      "Volvo": 18,
+      "BMW": 28,
+      "Volkswagen": 20,
+      "Hyundai": 16
+    }
+  },
+  "vehicles": [
+    {
+      "id": "tesla:cybertruck:2025:cybertruck",
+      "brand": "Tesla",
+      "model": "Cybertruck",
+      "year": 2025,
+      "trim": "All-Wheel Drive",
+      "variant": null,
+      "battery_kwh": 122.0,
+      "battery_capacity_type": "net",
+      "range_km": 515.0,
+      "range_type": "epa",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 515.0
+        }
+      ],
+      "ac_charging_kw": 11.5,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 79990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "pickup",
+      "source_url": "https://www.tesla.com/cybertruck"
+    },
+    {
+      "id": "tesla:model_3:2025:model_3",
+      "brand": "Tesla",
+      "model": "Model 3",
+      "year": 2025,
+      "trim": "Rear-Wheel Drive",
+      "variant": null,
+      "battery_kwh": 57.0,
+      "battery_capacity_type": "net",
+      "range_km": 554.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 554.0
+        },
+        {
+          "type": "epa",
+          "km": 438.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 170.0,
+      "prices": [
+        {
+          "amount": 38990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        },
+        {
+          "amount": 42990.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/model3"
+    },
+    {
+      "id": "tesla:model_s:2025:model_s",
+      "brand": "Tesla",
+      "model": "Model S",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": null,
+      "battery_kwh": 95.0,
+      "battery_capacity_type": "net",
+      "range_km": 634.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 652.0
+        },
+        {
+          "type": "wltp",
+          "km": 634.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 74990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/models"
+    },
+    {
+      "id": "tesla:model_x:2025:model_x",
+      "brand": "Tesla",
+      "model": "Model X",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": null,
+      "battery_kwh": 95.0,
+      "battery_capacity_type": "net",
+      "range_km": 560.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 580.0
+        },
+        {
+          "type": "wltp",
+          "km": 560.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 79990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.tesla.com/modelx"
+    },
+    {
+      "id": "tesla:model_y:2025:model_y",
+      "brand": "Tesla",
+      "model": "Model Y",
+      "year": 2025,
+      "trim": "Long Range RWD",
+      "variant": null,
+      "battery_kwh": 75.0,
+      "battery_capacity_type": "net",
+      "range_km": 600.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 542.0
+        },
+        {
+          "type": "wltp",
+          "km": 600.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 170.0,
+      "prices": [
+        {
+          "amount": 44990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.tesla.com/modely"
+    },
+    {
+      "id": "tesla:model_3:2025:model_3_performance",
+      "brand": "Tesla",
+      "model": "Model 3",
+      "year": 2025,
+      "trim": "Performance",
+      "variant": "Performance",
+      "battery_kwh": 79.0,
+      "battery_capacity_type": "net",
+      "range_km": 528.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 528.0
+        },
+        {
+          "type": "epa",
+          "km": 497.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 50990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/model3"
+    },
+    {
+      "id": "tesla:cybertruck:2025:cybertruck_cyberbeast",
+      "brand": "Tesla",
+      "model": "Cybertruck",
+      "year": 2025,
+      "trim": "Cyberbeast",
+      "variant": "Cyberbeast",
+      "battery_kwh": 122.0,
+      "battery_capacity_type": "net",
+      "range_km": 515.0,
+      "range_type": "epa",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 515.0
+        }
+      ],
+      "ac_charging_kw": 11.5,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 99990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "pickup",
+      "source_url": "https://www.tesla.com/cybertruck"
+    },
+    {
+      "id": "tesla:model_s:2025:model_s_plaid",
+      "brand": "Tesla",
+      "model": "Model S",
+      "year": 2025,
+      "trim": "Plaid",
+      "variant": "Plaid",
+      "battery_kwh": 95.0,
+      "battery_capacity_type": "net",
+      "range_km": 600.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 560.0
+        },
+        {
+          "type": "wltp",
+          "km": 600.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 89990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/models"
+    },
+    {
+      "id": "tesla:cybertruck:2025:cybertruck_long_range",
+      "brand": "Tesla",
+      "model": "Cybertruck",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": "Long Range RWD",
+      "battery_kwh": 122.0,
+      "battery_capacity_type": "net",
+      "range_km": 563.0,
+      "range_type": "epa",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 563.0
+        }
+      ],
+      "ac_charging_kw": 11.5,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 60990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "pickup",
+      "source_url": "https://www.tesla.com/cybertruck"
+    },
+    {
+      "id": "tesla:model_3:2025:model_3_long_range",
+      "brand": "Tesla",
+      "model": "Model 3",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": "Long Range",
+      "battery_kwh": 75.0,
+      "battery_capacity_type": "net",
+      "range_km": 678.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 678.0
+        },
+        {
+          "type": "epa",
+          "km": 584.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 47490.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/model3"
+    },
+    {
+      "id": "tesla:model_y:2025:model_y_long_range_awd",
+      "brand": "Tesla",
+      "model": "Model Y",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": "Long Range AWD",
+      "battery_kwh": 79.0,
+      "battery_capacity_type": "net",
+      "range_km": 719.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 500.0
+        },
+        {
+          "type": "wltp",
+          "km": 719.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 49990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.tesla.com/modely"
+    },
+    {
+      "id": "tesla:model_x:2025:model_x_plaid",
+      "brand": "Tesla",
+      "model": "Model X",
+      "year": 2025,
+      "trim": "Plaid",
+      "variant": "Plaid",
+      "battery_kwh": 95.0,
+      "battery_capacity_type": "net",
+      "range_km": 543.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 536.0
+        },
+        {
+          "type": "wltp",
+          "km": 543.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 94990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.tesla.com/modelx"
+    },
+    {
+      "id": "tesla:model_y:2025:model_y_performance",
+      "brand": "Tesla",
+      "model": "Model Y",
+      "year": 2025,
+      "trim": "Performance",
+      "variant": "Performance",
+      "battery_kwh": 79.0,
+      "battery_capacity_type": "net",
+      "range_km": 514.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 446.0
+        },
+        {
+          "type": "wltp",
+          "km": 514.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 54990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.tesla.com/modely"
+    },
+    {
+      "id": "tesla:cybertruck:2024:cybertruck",
+      "brand": "Tesla",
+      "model": "Cybertruck",
+      "year": 2024,
+      "trim": "All-Wheel Drive",
+      "variant": null,
+      "battery_kwh": 122.0,
+      "battery_capacity_type": "net",
+      "range_km": 515.0,
+      "range_type": "epa",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 515.0
+        }
+      ],
+      "ac_charging_kw": 11.5,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 79990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "pickup",
+      "source_url": "https://www.tesla.com/cybertruck"
+    },
+    {
+      "id": "tesla:cybertruck:2024:cybertruck_cyberbeast",
+      "brand": "Tesla",
+      "model": "Cybertruck",
+      "year": 2024,
+      "trim": "Cyberbeast",
+      "variant": "Cyberbeast",
+      "battery_kwh": 122.0,
+      "battery_capacity_type": "net",
+      "range_km": 515.0,
+      "range_type": "epa",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 515.0
+        }
+      ],
+      "ac_charging_kw": 11.5,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 99990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "pickup",
+      "source_url": "https://www.tesla.com/cybertruck"
+    },
+    {
+      "id": "tesla:cybertruck:2024:cybertruck_long_range",
+      "brand": "Tesla",
+      "model": "Cybertruck",
+      "year": 2024,
+      "trim": "Long Range",
+      "variant": "Long Range RWD",
+      "battery_kwh": 122.0,
+      "battery_capacity_type": "net",
+      "range_km": 563.0,
+      "range_type": "epa",
+      "ranges": [
+        {
+          "type": "epa",
+          "km": 563.0
+        }
+      ],
+      "ac_charging_kw": 11.5,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 60990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "pickup",
+      "source_url": "https://www.tesla.com/cybertruck"
+    },
+    {
+      "id": "tesla:model_3:2024:model_3",
+      "brand": "Tesla",
+      "model": "Model 3",
+      "year": 2024,
+      "trim": "Rear-Wheel Drive",
+      "variant": null,
+      "battery_kwh": 57.0,
+      "battery_capacity_type": "net",
+      "range_km": 554.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 554.0
+        },
+        {
+          "type": "epa",
+          "km": 438.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 170.0,
+      "prices": [
+        {
+          "amount": 38990.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        },
+        {
+          "amount": 42990.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/model3"
+    },
+    {
+      "id": "tesla:model_3:2024:model_3_long_range",
+      "brand": "Tesla",
+      "model": "Model 3",
+      "year": 2024,
+      "trim": "Long Range",
+      "variant": "Long Range",
+      "battery_kwh": 75.0,
+      "battery_capacity_type": "net",
+      "range_km": 678.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 678.0
+        },
+        {
+          "type": "epa",
+          "km": 584.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [
+        {
+          "amount": 47490.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.tesla.com/model3"
+    },
+    {
+      "id": "volvo:ec40:2025:ec40",
+      "brand": "Volvo",
+      "model": "EC40",
+      "year": 2025,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 420.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 420.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ec40"
+    },
+    {
+      "id": "volvo:ex30:2025:ex30",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2025,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 49.0,
+      "battery_capacity_type": "net",
+      "range_km": 344.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 344.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex40:2025:ex40",
+      "brand": "Volvo",
+      "model": "EX40",
+      "year": 2025,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 425.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 425.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex40"
+    },
+    {
+      "id": "volvo:ex90:2025:ex90",
+      "brand": "Volvo",
+      "model": "EX90",
+      "year": 2025,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 107.0,
+      "battery_capacity_type": "net",
+      "range_km": 600.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 600.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex90"
+    },
+    {
+      "id": "volvo:ex30:2025:ex30_twin_motor_performance",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2025,
+      "trim": "Performance",
+      "variant": "Twin Motor Performance",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 460.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 460.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ec40:2025:ec40_twin_motor",
+      "brand": "Volvo",
+      "model": "EC40",
+      "year": 2025,
+      "trim": "Base",
+      "variant": "Twin Motor",
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 413.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 413.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ec40"
+    },
+    {
+      "id": "volvo:ex30:2025:ex30_69kwh",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2025,
+      "trim": "Base",
+      "variant": "69 kWh",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex30:2025:ex30_twin_motor",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2025,
+      "trim": "Base",
+      "variant": "Twin Motor",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 460.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 460.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex40:2025:ex40_twin_motor",
+      "brand": "Volvo",
+      "model": "EX40",
+      "year": 2025,
+      "trim": "Base",
+      "variant": "Twin Motor",
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 418.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 418.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex40"
+    },
+    {
+      "id": "volvo:ec40:2024:ec40",
+      "brand": "Volvo",
+      "model": "EC40",
+      "year": 2024,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 420.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 420.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ec40"
+    },
+    {
+      "id": "volvo:ec40:2024:ec40_twin_motor",
+      "brand": "Volvo",
+      "model": "EC40",
+      "year": 2024,
+      "trim": "Base",
+      "variant": "Twin Motor",
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 413.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 413.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ec40"
+    },
+    {
+      "id": "volvo:ex30:2024:ex30",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2024,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 49.0,
+      "battery_capacity_type": "net",
+      "range_km": 344.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 344.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex30:2024:ex30_69kwh",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2024,
+      "trim": "Base",
+      "variant": "69 kWh",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex30:2024:ex30_twin_motor",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2024,
+      "trim": "Base",
+      "variant": "Twin Motor",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 460.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 460.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex30:2024:ex30_twin_motor_performance",
+      "brand": "Volvo",
+      "model": "EX30",
+      "year": 2024,
+      "trim": "Performance",
+      "variant": "Twin Motor Performance",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 460.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 460.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 153.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex30"
+    },
+    {
+      "id": "volvo:ex40:2024:ex40",
+      "brand": "Volvo",
+      "model": "EX40",
+      "year": 2024,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 425.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 425.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex40"
+    },
+    {
+      "id": "volvo:ex40:2024:ex40_twin_motor",
+      "brand": "Volvo",
+      "model": "EX40",
+      "year": 2024,
+      "trim": "Base",
+      "variant": "Twin Motor",
+      "battery_kwh": 69.0,
+      "battery_capacity_type": "net",
+      "range_km": 418.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 418.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex40"
+    },
+    {
+      "id": "volvo:ex90:2024:ex90",
+      "brand": "Volvo",
+      "model": "EX90",
+      "year": 2024,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 107.0,
+      "battery_capacity_type": "net",
+      "range_km": 600.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 600.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 250.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volvocars.com/intl/v/cars/ex90"
+    },
+    {
+      "id": "bmw:i4:2025:i4",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2025,
+      "trim": "eDrive40",
+      "variant": null,
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 598.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 598.0
+        },
+        {
+          "type": "epa",
+          "km": 512.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 59400.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        },
+        {
+          "amount": 61900.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2025
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i5:2025:i5",
+      "brand": "BMW",
+      "model": "i5",
+      "year": 2025,
+      "trim": "eDrive40",
+      "variant": null,
+      "battery_kwh": 81.2,
+      "battery_capacity_type": "net",
+      "range_km": 582.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 582.0
+        },
+        {
+          "type": "epa",
+          "km": 475.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 205.0,
+      "prices": [
+        {
+          "amount": 67100.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i7:2025:i7",
+      "brand": "BMW",
+      "model": "i7",
+      "year": 2025,
+      "trim": "xDrive60",
+      "variant": null,
+      "battery_kwh": 101.7,
+      "battery_capacity_type": "net",
+      "range_km": 625.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 625.0
+        },
+        {
+          "type": "epa",
+          "km": 505.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 107900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix1:2025:ix1",
+      "brand": "BMW",
+      "model": "iX1",
+      "year": 2025,
+      "trim": "xDrive30",
+      "variant": null,
+      "battery_kwh": 64.7,
+      "battery_capacity_type": "net",
+      "range_km": 438.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 438.0
+        },
+        {
+          "type": "epa",
+          "km": 352.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 130.0,
+      "prices": [
+        {
+          "amount": 58900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix2:2025:ix2",
+      "brand": "BMW",
+      "model": "iX2",
+      "year": 2025,
+      "trim": "xDrive30",
+      "variant": null,
+      "battery_kwh": 64.7,
+      "battery_capacity_type": "net",
+      "range_km": 449.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 449.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 130.0,
+      "prices": [
+        {
+          "amount": 58900.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix:2025:ix",
+      "brand": "BMW",
+      "model": "iX",
+      "year": 2025,
+      "trim": "xDrive50",
+      "variant": null,
+      "battery_kwh": 105.2,
+      "battery_capacity_type": "net",
+      "range_km": 630.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 630.0
+        },
+        {
+          "type": "epa",
+          "km": 497.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 87250.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        },
+        {
+          "amount": 106900.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/en/models/bmw-i/ix/bmw-ix-highlights.html"
+    },
+    {
+      "id": "bmw:ix3:2024:ix3",
+      "brand": "BMW",
+      "model": "iX3",
+      "year": 2024,
+      "trim": "iX3",
+      "variant": null,
+      "battery_kwh": 74.0,
+      "battery_capacity_type": "net",
+      "range_km": 461.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 461.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 155.0,
+      "prices": [
+        {
+          "amount": 70400.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2024
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2025:i4_edrive35",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2025,
+      "trim": "eDrive35",
+      "variant": "eDrive35",
+      "battery_kwh": 67.1,
+      "battery_capacity_type": "net",
+      "range_km": 492.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 492.0
+        },
+        {
+          "type": "epa",
+          "km": 412.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 180.0,
+      "prices": [
+        {
+          "amount": 56395.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix:2024:ix_xdrive40",
+      "brand": "BMW",
+      "model": "iX",
+      "year": 2024,
+      "trim": "xDrive40",
+      "variant": "xDrive40",
+      "battery_kwh": 71.0,
+      "battery_capacity_type": "net",
+      "range_km": 425.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 425.0
+        },
+        {
+          "type": "epa",
+          "km": 356.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 150.0,
+      "prices": [
+        {
+          "amount": 73200.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i7:2025:i7_m70",
+      "brand": "BMW",
+      "model": "i7",
+      "year": 2025,
+      "trim": "M70",
+      "variant": "M70",
+      "battery_kwh": 101.7,
+      "battery_capacity_type": "net",
+      "range_km": 560.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 560.0
+        },
+        {
+          "type": "epa",
+          "km": 459.0
+        }
+      ],
+      "ac_charging_kw": 22.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 168500.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2025:i4_m50",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2025,
+      "trim": "M50",
+      "variant": "M50",
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 521.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 521.0
+        },
+        {
+          "type": "epa",
+          "km": 429.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 69900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i5:2025:i5_m60",
+      "brand": "BMW",
+      "model": "i5",
+      "year": 2025,
+      "trim": "M60",
+      "variant": "M60",
+      "battery_kwh": 81.2,
+      "battery_capacity_type": "net",
+      "range_km": 512.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 512.0
+        },
+        {
+          "type": "epa",
+          "km": 408.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 205.0,
+      "prices": [
+        {
+          "amount": 84100.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2025:i4_edrive40",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2025,
+      "trim": "eDrive40",
+      "variant": "eDrive40",
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 598.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 598.0
+        },
+        {
+          "type": "epa",
+          "km": 512.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 59400.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix:2025:ix_xdrive50",
+      "brand": "BMW",
+      "model": "iX",
+      "year": 2025,
+      "trim": "xDrive50",
+      "variant": "xDrive50",
+      "battery_kwh": 105.2,
+      "battery_capacity_type": "net",
+      "range_km": 630.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 630.0
+        },
+        {
+          "type": "epa",
+          "km": 497.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 87250.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        },
+        {
+          "amount": 106900.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/en/models/bmw-i/ix/bmw-ix-highlights.html"
+    },
+    {
+      "id": "bmw:i4:2023:i4_edrive35",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2023,
+      "trim": "eDrive35",
+      "variant": "eDrive35",
+      "battery_kwh": 66.0,
+      "battery_capacity_type": "net",
+      "range_km": 483.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 483.0
+        },
+        {
+          "type": "epa",
+          "km": 418.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 180.0,
+      "prices": [
+        {
+          "amount": 53995.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2023
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2025:i4_xdrive40",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2025,
+      "trim": "xDrive40",
+      "variant": "xDrive40",
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 557.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 557.0
+        },
+        {
+          "type": "epa",
+          "km": 494.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 63900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix:2025:ix_m60",
+      "brand": "BMW",
+      "model": "iX",
+      "year": 2025,
+      "trim": "M60",
+      "variant": "M60",
+      "battery_kwh": 105.2,
+      "battery_capacity_type": "net",
+      "range_km": 561.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 561.0
+        },
+        {
+          "type": "epa",
+          "km": 459.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 119900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2025
+        },
+        {
+          "amount": 139900.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2025
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/en/models/bmw-i/ix/bmw-ix-highlights.html"
+    },
+    {
+      "id": "bmw:i4:2024:i4",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2024,
+      "trim": "eDrive40",
+      "variant": null,
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 590.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 590.0
+        },
+        {
+          "type": "epa",
+          "km": 486.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 57900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2024:i4_edrive35",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2024,
+      "trim": "eDrive35",
+      "variant": "eDrive35",
+      "battery_kwh": 67.1,
+      "battery_capacity_type": "net",
+      "range_km": 483.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 483.0
+        },
+        {
+          "type": "epa",
+          "km": 406.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 180.0,
+      "prices": [
+        {
+          "amount": 54900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2024:i4_edrive40",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2024,
+      "trim": "eDrive40",
+      "variant": "eDrive40",
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 590.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 590.0
+        },
+        {
+          "type": "epa",
+          "km": 486.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 57900.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2024:i4_m50",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2024,
+      "trim": "M50",
+      "variant": "M50",
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 516.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 516.0
+        },
+        {
+          "type": "epa",
+          "km": 435.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 68200.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i4:2024:i4_xdrive40",
+      "brand": "BMW",
+      "model": "i4",
+      "year": 2024,
+      "trim": "xDrive40",
+      "variant": "xDrive40",
+      "battery_kwh": 81.3,
+      "battery_capacity_type": "net",
+      "range_km": 549.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 549.0
+        },
+        {
+          "type": "epa",
+          "km": 494.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 207.0,
+      "prices": [
+        {
+          "amount": 62400.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "coupe",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i5:2024:i5",
+      "brand": "BMW",
+      "model": "i5",
+      "year": 2024,
+      "trim": "eDrive40",
+      "variant": null,
+      "battery_kwh": 81.2,
+      "battery_capacity_type": "net",
+      "range_km": 582.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 582.0
+        },
+        {
+          "type": "epa",
+          "km": 475.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 205.0,
+      "prices": [
+        {
+          "amount": 66800.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i5:2024:i5_m60",
+      "brand": "BMW",
+      "model": "i5",
+      "year": 2024,
+      "trim": "M60",
+      "variant": "M60",
+      "battery_kwh": 81.2,
+      "battery_capacity_type": "net",
+      "range_km": 512.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 512.0
+        },
+        {
+          "type": "epa",
+          "km": 406.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 205.0,
+      "prices": [
+        {
+          "amount": 84100.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i7:2024:i7",
+      "brand": "BMW",
+      "model": "i7",
+      "year": 2024,
+      "trim": "xDrive60",
+      "variant": null,
+      "battery_kwh": 101.7,
+      "battery_capacity_type": "net",
+      "range_km": 625.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 625.0
+        },
+        {
+          "type": "epa",
+          "km": 505.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 105700.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:i7:2024:i7_m70",
+      "brand": "BMW",
+      "model": "i7",
+      "year": 2024,
+      "trim": "M70",
+      "variant": "M70",
+      "battery_kwh": 101.7,
+      "battery_capacity_type": "net",
+      "range_km": 560.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 560.0
+        },
+        {
+          "type": "epa",
+          "km": 457.0
+        }
+      ],
+      "ac_charging_kw": 22.0,
+      "dc_charging_kw": 195.0,
+      "prices": [
+        {
+          "amount": 165700.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "sedan",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix1:2024:ix1",
+      "brand": "BMW",
+      "model": "iX1",
+      "year": 2024,
+      "trim": "xDrive30",
+      "variant": null,
+      "battery_kwh": 64.7,
+      "battery_capacity_type": "net",
+      "range_km": 438.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 438.0
+        },
+        {
+          "type": "epa",
+          "km": 346.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 130.0,
+      "prices": [
+        {
+          "amount": 57300.0,
+          "currency": "USD",
+          "country": "US",
+          "year": 2024
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "bmw:ix2:2024:ix2",
+      "brand": "BMW",
+      "model": "iX2",
+      "year": 2024,
+      "trim": "xDrive30",
+      "variant": null,
+      "battery_kwh": 64.7,
+      "battery_capacity_type": "net",
+      "range_km": 449.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 449.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 130.0,
+      "prices": [
+        {
+          "amount": 57400.0,
+          "currency": "EUR",
+          "country": "DE",
+          "year": 2024
+        }
+      ],
+      "body_type": "suv",
+      "source_url": "https://www.bmw.com/"
+    },
+    {
+      "id": "volkswagen:id_3:2025:id_3",
+      "brand": "Volkswagen",
+      "model": "ID.3",
+      "year": 2025,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 58.0,
+      "battery_capacity_type": "net",
+      "range_km": 428.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 428.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "hatchback",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_4:2025:id_4",
+      "brand": "Volkswagen",
+      "model": "ID.4",
+      "year": 2025,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 520.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 520.0
+        },
+        {
+          "type": "epa",
+          "km": 442.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_5:2025:id_5",
+      "brand": "Volkswagen",
+      "model": "ID.5",
+      "year": 2025,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 520.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 520.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_7:2025:id_7",
+      "brand": "Volkswagen",
+      "model": "ID.7",
+      "year": 2025,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 86.0,
+      "battery_capacity_type": "net",
+      "range_km": 700.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 700.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 175.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_buzz:2025:id_buzz",
+      "brand": "Volkswagen",
+      "model": "ID. Buzz",
+      "year": 2025,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 423.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 423.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "van",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_3:2025:id_3_gtx",
+      "brand": "Volkswagen",
+      "model": "ID.3",
+      "year": 2025,
+      "trim": "GTX",
+      "variant": "GTX",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 600.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 600.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 175.0,
+      "prices": [],
+      "body_type": "hatchback",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_3:2025:id_3_pro_s",
+      "brand": "Volkswagen",
+      "model": "ID.3",
+      "year": 2025,
+      "trim": "PRO S",
+      "variant": "PRO S",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 559.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 559.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "hatchback",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_7:2025:id_7_tour",
+      "brand": "Volkswagen",
+      "model": "ID.7",
+      "year": 2025,
+      "trim": "Tour",
+      "variant": "Tour",
+      "battery_kwh": 86.0,
+      "battery_capacity_type": "net",
+      "range_km": 700.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 700.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 175.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_buzz:2025:id_buzz_cargo",
+      "brand": "Volkswagen",
+      "model": "ID. Buzz",
+      "year": 2025,
+      "trim": "Cargo",
+      "variant": "Cargo",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 423.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 423.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "van",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_4:2025:id_4_gtx",
+      "brand": "Volkswagen",
+      "model": "ID.4",
+      "year": 2025,
+      "trim": "GTX",
+      "variant": "GTX",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_5:2025:id_5_gtx",
+      "brand": "Volkswagen",
+      "model": "ID.5",
+      "year": 2025,
+      "trim": "GTX",
+      "variant": "GTX",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_3:2024:id_3",
+      "brand": "Volkswagen",
+      "model": "ID.3",
+      "year": 2024,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 58.0,
+      "battery_capacity_type": "net",
+      "range_km": 428.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 428.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "hatchback",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_3:2024:id_3_gtx",
+      "brand": "Volkswagen",
+      "model": "ID.3",
+      "year": 2024,
+      "trim": "GTX",
+      "variant": "GTX",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 600.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 600.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 175.0,
+      "prices": [],
+      "body_type": "hatchback",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_3:2024:id_3_pro_s",
+      "brand": "Volkswagen",
+      "model": "ID.3",
+      "year": 2024,
+      "trim": "PRO S",
+      "variant": "PRO S",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 559.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 559.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "hatchback",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_4:2024:id_4",
+      "brand": "Volkswagen",
+      "model": "ID.4",
+      "year": 2024,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 520.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 520.0
+        },
+        {
+          "type": "epa",
+          "km": 442.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_4:2024:id_4_gtx",
+      "brand": "Volkswagen",
+      "model": "ID.4",
+      "year": 2024,
+      "trim": "GTX",
+      "variant": "GTX",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_5:2024:id_5",
+      "brand": "Volkswagen",
+      "model": "ID.5",
+      "year": 2024,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 520.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 520.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_5:2024:id_5_gtx",
+      "brand": "Volkswagen",
+      "model": "ID.5",
+      "year": 2024,
+      "trim": "GTX",
+      "variant": "GTX",
+      "battery_kwh": 77.0,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 135.0,
+      "prices": [],
+      "body_type": "coupe",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_7:2024:id_7",
+      "brand": "Volkswagen",
+      "model": "ID.7",
+      "year": 2024,
+      "trim": "PRO",
+      "variant": null,
+      "battery_kwh": 86.0,
+      "battery_capacity_type": "net",
+      "range_km": 700.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 700.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 175.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "volkswagen:id_7:2024:id_7_tour",
+      "brand": "Volkswagen",
+      "model": "ID.7",
+      "year": 2024,
+      "trim": "Tour",
+      "variant": "Tour",
+      "battery_kwh": 86.0,
+      "battery_capacity_type": "net",
+      "range_km": 700.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 700.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 175.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.volkswagen.de/"
+    },
+    {
+      "id": "hyundai:ioniq_5:2025:ioniq_5",
+      "brand": "Hyundai",
+      "model": "IONIQ 5",
+      "year": 2025,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 507.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 507.0
+        },
+        {
+          "type": "epa",
+          "km": 488.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_6:2025:ioniq_6",
+      "brand": "Hyundai",
+      "model": "IONIQ 6",
+      "year": 2025,
+      "trim": "Standard Range",
+      "variant": null,
+      "battery_kwh": 50.0,
+      "battery_capacity_type": "net",
+      "range_km": 429.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 429.0
+        },
+        {
+          "type": "epa",
+          "km": 361.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_9:2025:ioniq_9",
+      "brand": "Hyundai",
+      "model": "IONIQ 9",
+      "year": 2025,
+      "trim": "Long Range AWD",
+      "variant": null,
+      "battery_kwh": 99.5,
+      "battery_capacity_type": "net",
+      "range_km": 620.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 620.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 350.0,
+      "prices": [],
+      "body_type": "suv",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:kona_electric:2025:kona_electric",
+      "brand": "Hyundai",
+      "model": "Kona Electric",
+      "year": 2025,
+      "trim": "Standard Range",
+      "variant": null,
+      "battery_kwh": 36.0,
+      "battery_capacity_type": "net",
+      "range_km": 305.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 305.0
+        },
+        {
+          "type": "epa",
+          "km": 258.0
+        }
+      ],
+      "ac_charging_kw": 7.2,
+      "dc_charging_kw": 100.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_5:2025:ioniq_5_n",
+      "brand": "Hyundai",
+      "model": "IONIQ 5",
+      "year": 2025,
+      "trim": "N",
+      "variant": "N",
+      "battery_kwh": 78.0,
+      "battery_capacity_type": "net",
+      "range_km": 350.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 350.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:kona_electric:2025:kona_electric_long_range",
+      "brand": "Hyundai",
+      "model": "Kona Electric",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": "Long Range",
+      "battery_kwh": 58.0,
+      "battery_capacity_type": "net",
+      "range_km": 484.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 484.0
+        },
+        {
+          "type": "epa",
+          "km": 415.0
+        }
+      ],
+      "ac_charging_kw": 7.2,
+      "dc_charging_kw": 100.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_5:2025:ioniq_5_awd",
+      "brand": "Hyundai",
+      "model": "IONIQ 5",
+      "year": 2025,
+      "trim": "AWD",
+      "variant": "AWD",
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        },
+        {
+          "type": "epa",
+          "km": 412.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_6:2025:ioniq_6_long_range",
+      "brand": "Hyundai",
+      "model": "IONIQ 6",
+      "year": 2025,
+      "trim": "Long Range",
+      "variant": "Long Range",
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 614.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 614.0
+        },
+        {
+          "type": "epa",
+          "km": 581.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_6:2025:ioniq_6_awd",
+      "brand": "Hyundai",
+      "model": "IONIQ 6",
+      "year": 2025,
+      "trim": "AWD",
+      "variant": "AWD",
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 583.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 583.0
+        },
+        {
+          "type": "epa",
+          "km": 497.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_5:2024:ioniq_5",
+      "brand": "Hyundai",
+      "model": "IONIQ 5",
+      "year": 2024,
+      "trim": "Base",
+      "variant": null,
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 507.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 507.0
+        },
+        {
+          "type": "epa",
+          "km": 488.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_5:2024:ioniq_5_awd",
+      "brand": "Hyundai",
+      "model": "IONIQ 5",
+      "year": 2024,
+      "trim": "AWD",
+      "variant": "AWD",
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 480.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 480.0
+        },
+        {
+          "type": "epa",
+          "km": 412.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_5:2024:ioniq_5_n",
+      "brand": "Hyundai",
+      "model": "IONIQ 5",
+      "year": 2024,
+      "trim": "N",
+      "variant": "N",
+      "battery_kwh": 78.0,
+      "battery_capacity_type": "net",
+      "range_km": 350.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 350.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_6:2024:ioniq_6",
+      "brand": "Hyundai",
+      "model": "IONIQ 6",
+      "year": 2024,
+      "trim": "Standard Range",
+      "variant": null,
+      "battery_kwh": 50.0,
+      "battery_capacity_type": "net",
+      "range_km": 429.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 429.0
+        },
+        {
+          "type": "epa",
+          "km": 361.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_6:2024:ioniq_6_awd",
+      "brand": "Hyundai",
+      "model": "IONIQ 6",
+      "year": 2024,
+      "trim": "AWD",
+      "variant": "AWD",
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 583.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 583.0
+        },
+        {
+          "type": "epa",
+          "km": 497.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:ioniq_6:2024:ioniq_6_long_range",
+      "brand": "Hyundai",
+      "model": "IONIQ 6",
+      "year": 2024,
+      "trim": "Long Range",
+      "variant": "Long Range",
+      "battery_kwh": 72.6,
+      "battery_capacity_type": "net",
+      "range_km": 614.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 614.0
+        },
+        {
+          "type": "epa",
+          "km": 581.0
+        }
+      ],
+      "ac_charging_kw": 11.0,
+      "dc_charging_kw": 220.0,
+      "prices": [],
+      "body_type": "sedan",
+      "source_url": "https://www.hyundai.com/"
+    },
+    {
+      "id": "hyundai:kona_electric:2024:kona_electric",
+      "brand": "Hyundai",
+      "model": "Kona Electric",
+      "year": 2024,
+      "trim": "Standard Range",
+      "variant": null,
+      "battery_kwh": 36.0,
+      "battery_capacity_type": "net",
+      "range_km": 305.0,
+      "range_type": "wltp",
+      "ranges": [
+        {
+          "type": "wltp",
+          "km": 305.0
+        },
+        {
+          "type": "epa",
+          "km": 258.0
+        }
+      ],
+      "ac_charging_kw": 7.2,
+      "dc_charging_kw": 100.0,
+      "prices": [],
+      "body_type": "crossover",
+      "source_url": "https://www.hyundai.com/"
+    }
+  ]
+}
