@@ -1,0 +1,20 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# API keys
+.env
+.env.*
+!.env.example
+
+# React / Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+
+# Temporary development scripts
+test.py
