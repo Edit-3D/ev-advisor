@@ -5,11 +5,23 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from backend.app.vehicles.models import Vehicle
+from backend.app.vehicles.official_urls import get_official_model_url
 from backend.app.vehicles.repository import DEFAULT_DATASET_PATH, load_vehicles
 
 
 def _data(vehicles: Iterable[Vehicle] | None, dataset_path: str | Path) -> list[Vehicle]:
     return list(vehicles) if vehicles is not None else load_vehicles(dataset_path)
+
+
+def _tool_vehicle(vehicle: Vehicle) -> dict[str, Any]:
+    """Serialize a vehicle while preserving provenance and adding reviewed links."""
+    data = vehicle.model_dump(mode="json")
+    configuration = f"{vehicle.year} {vehicle.trim}"
+    if vehicle.variant and vehicle.variant.casefold() != vehicle.trim.casefold():
+        configuration = f"{configuration} — {vehicle.variant}"
+    data["configuration_label"] = f"{vehicle.brand} {vehicle.model} ({configuration})"
+    data["official_model_url"] = get_official_model_url(vehicle.brand, vehicle.model)
+    return data
 
 
 def search_vehicles(
@@ -77,7 +89,7 @@ def search_vehicles(
     }
     return {
         "count": len(matches),
-        "results": [vehicle.model_dump(mode="json") for vehicle in matches],
+        "results": [_tool_vehicle(vehicle) for vehicle in matches],
         "unavailable_attribute_counts": active_unavailable,
     }
 
@@ -99,7 +111,7 @@ def compare_vehicles(
         vehicle = index.get(vehicle_id)
         if vehicle is None:
             continue
-        data = vehicle.model_dump(mode="json")
+        data = _tool_vehicle(vehicle)
         missing = [
             field
             for field in ("variant", "dc_charging_kw", "body_type")

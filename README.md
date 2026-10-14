@@ -1,32 +1,188 @@
 # EV Advisor
 
-EV Advisor is a FastAPI and React foundation for a multi-agent electric vehicle assistant. Stage 2 adds reproducible OpenEV Data normalization and deterministic vehicle tools. LLM, RAG, and multi-agent orchestration remain intentionally out of scope.
+EV Advisor is a full-stack, multi-agent electric-vehicle assistant built for an Ericsson Agentic AI Full-Stack Developer take-home assignment. It helps users search and compare EV configurations, estimate charging costs, and understand topics such as charging, battery health, real-world range, and ownership.
 
-## Project structure
+The application combines curated vehicle specifications with a small, source-backed knowledge base. Gemini decides which specialist capability is appropriate, while LangGraph controls the allowed execution paths. Responses include citations where knowledge retrieval was used and an expandable trace of the agents and tools invoked.
 
-```text
-backend/     FastAPI application, vehicle tools, and tests
-frontend/    React + TypeScript + Vite client
-data/        Original OpenEV Data input, license, and normalized output
-scripts/     Reproducible dataset ingestion entry point
-test.py      Existing Gemini/LangGraph diagnostic (preserved)
+## Capabilities
+
+- Search a curated EV dataset by manufacturer, range, battery capacity, body type, and price.
+- Compare exact vehicle configurations without inventing missing specifications.
+- Estimate charging cost from energy, electricity price, currency, and charging efficiency.
+- Answer general EV questions using local TF-IDF retrieval and citation-ready source metadata.
+- Route dynamically to a Vehicle Agent, Research Agent, both specialists, or a direct conversational response.
+- Retain short-term conversation context using a caller-visible conversation ID.
+- Render Markdown answers, tables, links, citations, and agent/tool execution metadata in a responsive React interface.
+
+## Technology stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, `react-markdown`, `remark-gfm` |
+| Frontend serving | Nginx with SPA fallback and `/api/` reverse proxy |
+| Backend | Python, FastAPI, Pydantic, Uvicorn |
+| LLM | Google Gemini through `langchain-google-genai`; default model `gemini-3.5-flash-lite` |
+| Agent orchestration | LangGraph with an in-memory checkpointer |
+| Retrieval | Local Markdown corpus, scikit-learn TF-IDF, cosine similarity |
+| Vehicle data | Curated OpenEV Data v1.24.0 records |
+| Local deployment | Docker Compose |
+
+## Architecture
+
+```mermaid
+flowchart TD
+    UI[React frontend] -->|POST /api/chat| NX[Nginx]
+    NX -->|POST /chat| API[FastAPI]
+    API --> SG[Gemini Supervisor]
+
+    SG -->|vehicle| VA[Vehicle Agent<br/>standalone mode]
+    SG -->|research| RA[Research Agent<br/>standalone mode]
+    SG -->|both| FAN[Parallel fan-out]
+    SG -->|direct| DR[Direct Gemini response]
+
+    VA --> VT[Vehicle tools]
+    RA --> KT[Knowledge retrieval tool]
+    VT --> VF[Final response]
+    KT --> RF[Final response + citations]
+
+    FAN --> VAC[Vehicle Agent<br/>collaborative mode]
+    FAN --> RAC[Research Agent<br/>collaborative mode]
+    VAC --> VTC[Vehicle tools]
+    RAC --> KTC[Knowledge retrieval tool]
+    VTC --> SYN[Gemini synthesis]
+    KTC --> SYN
+    SYN --> CF[Combined response + citations]
+
+    DR --> DF[Final response]
+    VF --> API
+    RF --> API
+    CF --> API
+    DF --> API
 ```
 
-## Vehicle dataset
+The Supervisor uses structured Gemini output to select one of four destinations. Routing is model-driven rather than based on keyword rules. Within each specialist, Gemini dynamically chooses from the tools available to that specialist.
 
-The source is **OpenEV Data 1.24.0**, supplied as `data/raw/open-ev-data-v1.24.0.json`. The original file is preserved unchanged. It contains 1,189 records and declares source schema version 1.0.0. OpenEV Data is distributed under the **Community Data License Agreement – Permissive 2.0**; the required license text remains at `data/LICENSE-OPENEV-DATA.txt`.
+LangGraph keeps the transitions deterministic after a route is selected:
 
-The source represents each model year and variant as a vehicle record. Manufacturer, model, and trim are `{slug, name}` objects; an optional variant object further identifies body-style or equipment variants. Technical data is nested under `battery`, `charging`, `range`, and `body`. Rated ranges can include WLTP, EPA, CLTC, NEDC, JC08, or `other` cycles. Pricing, when present, is a list of market-specific MSRP entries under `pricing.msrp`.
+- `vehicle` → Vehicle Agent → final response
+- `research` → Research Agent → final response
+- `both` → Vehicle and Research Agents in parallel → synthesis → final response
+- `direct` → direct response
 
-Regenerate the normalized dataset from the project root:
+Single-specialist responses bypass synthesis. For a combined request, both specialists produce focused evidence concurrently, and synthesis waits for both before composing one answer. Tool loops are bounded to four model iterations. If either combined specialist fails, synthesis does not silently produce a partial answer.
+
+### Agents and tools
+
+- **Supervisor:** chooses `vehicle`, `research`, `both`, or `direct`, using recent conversation context to resolve follow-up references.
+- **Vehicle Agent:** uses `search_vehicles`, `compare_vehicles`, and `calculate_charging_cost`. Comparisons require exact vehicle IDs returned by search.
+- **Research Agent:** calls `search_ev_knowledge` before making factual general-EV claims and carries retrieved source URLs into the response.
+- **Synthesis:** runs only for `both`; combines vehicle-specific evidence with general guidance without attributing unsupported features to a named vehicle.
+
+Conversation state is stored in LangGraph's in-memory checkpointer under `conversation_id`. The frontend reuses the returned ID for follow-ups and clears it on **New Chat**. State is process-local and is lost when the backend restarts.
+
+## Quick start with Docker
+
+### Prerequisites
+
+- Docker Desktop with WSL 2 on Windows, or Docker Engine with the Compose plugin
+- A Google Gemini API key
+
+From the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\ingest_vehicles.py
+Copy-Item .env.example .env
 ```
 
-The default output is a curated 100-record dataset with these configurable limits:
+Edit `.env` and replace the placeholder:
 
-| Manufacturer | Records | Distinct models covered |
+```dotenv
+GEMINI_API_KEY=your_api_key_here
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+`GEMINI_MODEL` is optional; the value above is the backend default. Never put the API key in a `VITE_*` variable because Vite embeds those values in browser assets.
+
+Build and start the application:
+
+```powershell
+docker compose up --build
+```
+
+Once both services are healthy:
+
+- Frontend: <http://localhost:5173>
+- Backend: <http://localhost:8000>
+- OpenAPI documentation: <http://localhost:8000/docs>
+- Health endpoint: <http://localhost:8000/health>
+
+Stop and remove the containers and Compose network:
+
+```powershell
+docker compose down
+```
+
+Compose passes `.env` to the backend at runtime; it is not copied into either image. Nginx serves the frontend and rewrites `/api/chat` to `http://backend:8000/chat`. The project `data/` directory is mounted read-only at `/app/data`, avoiding duplication of the raw dataset in the backend image.
+
+## Run locally without Docker
+
+Use Python 3.12 and Node.js 22 to match the Docker images.
+
+### Backend
+
+From the repository root in PowerShell:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+# Edit .env and provide GEMINI_API_KEY
+python -m uvicorn backend.app.main:app --reload --env-file .env
+```
+
+### Frontend
+
+In another terminal:
+
+```powershell
+Set-Location frontend
+npm ci
+npm run dev
+```
+
+Open <http://localhost:5173>. In local development the frontend defaults to `http://localhost:8000`; set `VITE_API_URL` before starting Vite only when a different backend URL is required.
+
+To inspect frontend states without the backend, start the development-only preview from `frontend/`:
+
+```powershell
+$env:VITE_PREVIEW_MODE="true"
+npm run dev
+```
+
+Open the URL printed by Vite and use the preview-scenario selector. Preview mode uses static fixtures and blocks chat requests. Its controls cannot activate in a production build because they also require Vite's development flag; the statically imported fixture module may still be present in the compiled JavaScript bundle.
+
+## Example scenarios
+
+Routing and tool selection are dynamic, so these examples demonstrate intended capabilities rather than guarantee a specific model decision or wording.
+
+| Scenario | Example question | Capability demonstrated |
+| --- | --- | --- |
+| Vehicle search | “Find three Volvo EVs with at least 400 km rated range.” | Structured filtering while preserving the source range cycle |
+| Vehicle comparison | “Compare the Volvo EX30 and Hyundai IONIQ 5.” | Search for exact configurations followed by structured comparison |
+| Charging calculation | “What would it cost to charge a Tesla Model Y from 20% to 80% at €0.30/kWh?” | Vehicle lookup plus deterministic charging-cost calculation |
+| EV knowledge | “Why does cold weather reduce EV range?” | Local knowledge retrieval with external source metadata |
+| Combined evidence | “Compare the Volvo EX30 and Hyundai IONIQ 5 for winter highway driving.” | Vehicle specifications and general winter-range guidance, synthesized together when both are selected |
+| Follow-up | “Which of those has faster DC charging?” | Conversation context resolved through the same `conversation_id` |
+
+## Data and grounding
+
+### Vehicle dataset
+
+`data/raw/open-ev-data-v1.24.0.json` is the unchanged 1,189-record OpenEV Data v1.24.0 source. Its CDLA-Permissive-2.0 license is retained in `data/LICENSE-OPENEV-DATA.txt`.
+
+`data/vehicles.json` is a deterministic 100-record selection:
+
+| Manufacturer | Records | Distinct models |
 | --- | ---: | ---: |
 | Tesla | 18 | 5 |
 | Volvo | 18 | 4 |
@@ -34,245 +190,105 @@ The default output is a curated 100-record dataset with these configurable limit
 | Volkswagen | 20 | 5 |
 | Hyundai | 16 | 4 |
 
-Selection is deterministic and follows these rules in order:
-
-1. Restrict candidates to the configured manufacturers and require each quota to be satisfiable.
-2. Select the strongest representative of every distinct model before adding second configurations. If a quota is smaller than the model count, model representatives compete by completeness, newest model year, then original vehicle ID.
-3. Fill remaining positions by preferring previously unseen combinations of net battery capacity, drivetrain, AC/DC charging power, trim, and variant.
-4. Break remaining ties by the number of individually novel specification values, completeness of battery/range/charging data, newest year, then original vehicle ID.
-
-The original identifiers and specifications are retained without modification. Identical repeated IDs are removed; conflicting records with the same ID fail validation. Running ingestion repeatedly against the same input and configuration produces byte-identical output.
-
-Optional paths and source version can be supplied with `--source`, `--output`, and `--source-version`. To replace the default manufacturer configuration, repeat `--manufacturer-limit NAME=COUNT` for every desired manufacturer:
+The ingestion pipeline prioritizes distinct models, specification diversity, completeness, and recent model years, with stable identifier-based tie-breaking. It preserves original vehicle IDs and specification values. Regenerate the curated file with:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\ingest_vehicles.py `
-  --manufacturer-limit Tesla=10 `
-  --manufacturer-limit Volvo=10
+.\.venv\Scripts\python.exe scripts\ingest_vehicles.py
 ```
 
-The generated metadata separately records the 1,189 source records, the number selected for curation, the number successfully normalized, and the configured limits.
-
-Each normalized vehicle contains:
-
-- `id`, `brand`, `model`, `year`, `trim`, and optional `variant`
-- usable net `battery_kwh` with `battery_capacity_type: "net"`
-- a preferred `range_km`/`range_type` pair plus all source `ranges`
-- AC and optional DC charging power in kW
-- zero or more MSRP `prices`, each retaining amount, currency, country, and year
-- optional `body_type` and a source URL
-
-No currency conversion is performed. Prices are source MSRP observations, not live prices or verified Swedish retail prices. The source has pricing for only 174 of 1,189 records, contains no consumption field, has no estimated real-world range field, and omits DC power for 45 records. These unavailable values are not invented. The curated file is intentionally limited to the configured brands and is not a statistically representative sample of the full OpenEV dataset.
-
-### Deterministic vehicle tools
-
-The independently testable functions in `backend/app/vehicles/tools.py` are:
-
-- `search_vehicles`: filters by manufacturer, body type, minimum net battery capacity, minimum rated range/cycle, and maximum price. Price filtering requires an explicit ISO currency and never converts currencies. Results report how many candidates lacked a requested price or range cycle.
-- `compare_vehicles`: compares two or more IDs, preserves source values, reports unknown IDs, and lists missing optional fields per vehicle.
-- `calculate_charging_cost`: calculates grid energy and estimated cost from energy added, unit electricity price, and charging efficiency. Its default efficiency is 90%.
-
-These functions do not use an LLM and remain separate from the FastAPI layer. A later stage can wrap them as LangChain tools and route calls through LangGraph without changing their deterministic business logic.
-
-## Local EV knowledge retrieval
-
-The Stage 3 knowledge base gives a future Research Agent grounded background material without making an LLM or network call. Five concise Markdown documents live in `data/knowledge/`:
-
-- `ev_charging.md`
-- `battery_health.md`
-- `real_world_range.md`
-- `charging_costs.md`
-- `ev_ownership.md`
-
-Content was paraphrased from pages accessed on 2026-10-13 from the US Department of Energy and its Alternative Fuels Data Center, FuelEconomy.gov, NREL, and Geotab. Each document identifies direct URLs and its verification date. US-specific levels and connector examples are labeled; range cycles, tariffs, currencies, incentives, and market availability are not treated as globally interchangeable.
-
-`KnowledgeIndex` splits text within Markdown section boundaries into windows of up to 110 words with a 20-word overlap when a section needs multiple chunks. Each chunk retains its document title, section, filename, verification date, and only the external URLs mapped to that section. A cached scikit-learn TF-IDF index ranks word and two-word features by cosine similarity. Local TF-IDF is transparent, deterministic, fast for this small corpus, and works offline without an embedding API or vector database. A minimum relevance score prevents obviously unrelated passages from being returned.
-
-Call the reusable tool from the project root:
-
-```python
-from backend.app.rag import search_ev_knowledge
-
-result = search_ev_knowledge(
-    "How do cold weather and cabin heating affect EV range?",
-    top_k=3,
-)
-```
-
-The result is JSON-serializable. Each item contains `passage`, `document_title`, `section_heading`, `document_filename`, `source_urls`, `verification_date`, and `relevance_score`. For the example above, the leading result is the “Cold weather and climate control” section of `real_world_range.md`. A future LangGraph Research Agent can call this function and use the returned external URLs as citation metadata; retrieval itself never invents citations.
-
-Run only the retrieval tests with:
+Manufacturer limits and input/output paths are configurable; see:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend\tests\test_rag_retrieval.py
+.\.venv\Scripts\python.exe scripts\ingest_vehicles.py --help
 ```
 
-## Gemini and LangGraph agents
+Important data limitations:
 
-Stage 4 connects the existing tools through a Gemini-powered LangGraph workflow:
+- Coverage is intentionally limited to five manufacturers and selected configurations.
+- Range values retain their source cycles, such as WLTP or EPA, and should not be treated as interchangeable.
+- Prices are sparse, market-specific source MSRP observations—not live offers or verified Swedish prices.
+- No currency conversion is performed.
+- Optional fields such as price or DC charging power may be missing and are not invented.
+- Model names can represent multiple years, trims, or variants; exact configuration IDs matter for comparison.
 
-```mermaid
-flowchart TD
-    U[User message + conversation ID] --> S[Gemini supervisor]
-    S -->|vehicle| V[Vehicle Agent: standalone]
-    S -->|research| R[Research Agent: standalone]
-    S -->|both| P{Parallel fan-out}
-    P --> VC[Vehicle Agent: collaborative]
-    P --> RC[Research Agent: collaborative]
-    VC --> Y[Gemini synthesis]
-    RC --> Y
-    S -->|direct conversation| D[Direct Gemini response]
-    V --> A[Answer + citations + observable trace]
-    R --> A
-    Y --> A
-    D --> A
-```
+### EV knowledge base
 
-The supervisor uses structured Gemini output to choose the Vehicle Agent, Research Agent, both, or a direct conversational response. It does not use keyword rules. A single specialist produces a complete standalone answer directly, avoiding an extra Gemini synthesis call. When both specialists are selected, LangGraph runs them concurrently in collaborative mode and waits for both before synthesis. The Vehicle Agent can dynamically call `search_vehicles`, `compare_vehicles`, and `calculate_charging_cost`; the Research Agent calls `search_ev_knowledge` and carries its original source URLs into the final response. Tool loops are bounded, and only observable agent/tool names—not hidden reasoning—are returned as trace metadata.
+Five curated Markdown documents under `data/knowledge/` cover charging, battery health, real-world range, charging costs, and ownership. They were paraphrased from the US Department of Energy, Alternative Fuels Data Center, FuelEconomy.gov, NREL, and Geotab; each document records its source URLs and verification date.
 
-Gemini runs only in the backend. Configure these values in the root `.env`:
+`KnowledgeIndex` splits documents within section boundaries, builds a cached TF-IDF index over unigrams and bigrams, and ranks chunks with cosine similarity. Results below a minimum relevance score are omitted. Retrieval is deterministic and offline, but it is lexical rather than semantic and the small corpus cannot answer every EV question. Regional assumptions and source freshness still require care.
 
-```dotenv
-GEMINI_API_KEY=your_api_key_here
-GEMINI_MODEL=gemini-3.1-flash-lite
-```
+## API and frontend behavior
 
-`GEMINI_MODEL` is optional and defaults to `gemini-3.1-flash-lite`. The key is passed to Docker at runtime and is never included in either image or sent to the browser. For local development, load the file explicitly:
+- `GET /health` returns `{"status":"ok"}`.
+- `POST /chat` accepts a non-empty `message` and an optional URL-safe `conversation_id`.
+- The response contains `reply`, `conversation_id`, `citations`, `agents_invoked`, and `tools_called`.
 
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --env-file .env
-```
+The execution fields expose observable agent and tool names only—not hidden reasoning, prompts, tool arguments, or timings. The frontend renders assistant Markdown safely, shows citations separately, and places execution metadata in an optional expandable summary. User messages remain plain text.
 
-LangGraph uses an in-memory checkpointer keyed by the `conversation_id` accepted and returned by `/chat`. Follow-up messages can reference earlier turns, while different IDs remain isolated. The frontend stores the returned ID for the active page session and offers **New Chat** to start over. Memory is lost whenever the backend restarts and is intentionally limited to recent messages supplied to Gemini.
+## Reliability, diagnostics, and testing
 
-Example prompts:
+Each Gemini invocation has a 60-second request timeout. The workflow retries only `TimeoutError` and provider statuses `429`, `500`, `502`, `503`, and `504`, with exponential backoff and at most two retries per individual invocation. Because one user request can contain several Gemini invocations, its total retry count can exceed two. Other validation, parsing, schema, and application errors are not retried automatically.
 
-- `Find three Volvo EVs with at least 400 km rated range.`
-- `Compare the Tesla Model Y and Volvo EX30.`
-- `Why does cold weather reduce EV range?`
-- `Compare the Volvo EX30 and Hyundai IONIQ 5 for winter highway driving.`
-- Follow-up: `Which of those has faster DC charging?`
+FastAPI returns a sanitized `503` for retryable provider failures, `504` for provider timeouts, and `500` for unexpected generation failures. Nginx waits up to 180 seconds for a backend response before returning its own `504`. Exceptionally slow multi-call workflows can still exceed that proxy timeout.
 
-Run all offline tests—Gemini is mocked through dependency injection—with:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest
-```
-
-Known limitations: checkpoint memory is process-local and non-persistent; the curated vehicle data covers five manufacturers; knowledge and vehicle data are static rather than live market information; TF-IDF retrieval is lexical; and Gemini availability, latency, quotas, and tool-call behavior depend on the external API.
-
-## Docker quick start
-
-### Prerequisites
-
-- Docker Desktop with the WSL 2 backend (Windows), or Docker Engine with the Compose plugin
-- A root `.env` file (copy `.env.example` if starting fresh)
-
-From the project root, build and start both services:
-
-```powershell
-docker compose up --build
-```
-
-Open these URLs after both services become healthy:
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8000`
-- API documentation: `http://localhost:8000/docs`
-
-The browser sends containerized frontend requests to `/api/chat`. Nginx proxies them internally to `http://backend:8000/chat`; the Compose service name is never exposed to browser JavaScript. The local `data/` directory is mounted read-only at `/app/data`, so datasets are available to the backend without being copied into its image.
-
-Stop and remove the containers and network with:
-
-```powershell
-docker compose down
-```
-
-Rebuild after dependency, Dockerfile, or frontend build-time changes:
-
-```powershell
-docker compose up --build
-```
-
-Compose reads backend environment variables at runtime from the root `.env`. This file is excluded from Git and Docker build contexts and is never copied into an image. Do not place secrets in `VITE_*` variables: Vite embeds those values in browser assets.
-
-### Docker troubleshooting
-
-- Run `docker compose ps` to check service and health status.
-- Run `docker compose logs backend` or `docker compose logs frontend` for startup and proxy errors.
-- If ports `5173` or `8000` are occupied, stop the local process using them before starting Compose.
-- If the backend is unhealthy, verify that `.env` exists and run `curl.exe http://localhost:8000/health`.
-- If dependencies appear stale, rebuild without cache using `docker compose build --no-cache`, then run `docker compose up`.
-
-## Run without Docker
-
-### Prerequisites
-
-- Python 3.11 or newer
-- Node.js 20 or newer
-- An existing `.venv` in the project root
-
-### Backend setup
-
-From the project root in Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
-
-Keep secrets in the existing `.env` file. If starting fresh, copy `.env.example` to `.env` and replace the placeholder API key. The default model for future backend integration is:
-
-```dotenv
-GEMINI_MODEL=gemini-3.1-flash-lite
-```
-
-Start the API from the project root:
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --env-file .env
-```
-
-The API is available at `http://localhost:8000`; interactive documentation is at `http://localhost:8000/docs`.
-
-Run backend tests:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest
-```
-
-### Frontend setup
-
-In a second PowerShell window:
-
-```powershell
-Set-Location .\frontend
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173`. The frontend sends `POST` requests to `http://localhost:8000/chat`. To use another backend URL, set `VITE_API_URL` when starting Vite.
-
-Build the frontend:
-
-```powershell
-Set-Location .\frontend
-npm run build
-```
-
-## API endpoints
-
-- `GET /health` returns `{ "status": "ok" }`.
-- `POST /chat` accepts a message and optional `conversation_id`, then returns the agent reply, conversation ID, citations, and observable agent/tool trace.
-
-Vehicle and knowledge tools remain internal Python functions used by the agent workflow rather than public API endpoints.
-
-## Agent reliability diagnostics
-
-Gemini calls use a 60-second request timeout. The workflow retries only timeouts and retryable provider responses (`429`, `500`, `502`, `503`, and `504`), with at most two retries and exponential backoff. Validation, structured-output, tool-schema, and other application errors are not retried automatically.
-
-The backend emits a `workflow_diagnostics` JSON log after each request. It contains provider-call, agent-stage, synthesis, and tool timings plus retry and sanitized error metadata. It deliberately excludes prompts, replies, tool arguments/results, conversation identifiers, and credentials. Inspect it with:
+The backend writes sanitized `workflow_diagnostics` JSON logs containing model-attempt durations, retry metadata, agent-stage durations, and tool durations. Logs intentionally exclude API keys, prompts, full conversations, tool arguments/results, and conversation IDs:
 
 ```powershell
 docker compose logs backend
 ```
+
+Run the offline backend suite:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+The tests cover ingestion, deterministic vehicle tools, retrieval, API behavior, routing, parallel state merging, citations, conversation isolation, retries, and failure handling. Gemini behavior is replaced with deterministic test doubles; the suite does not require a live API call.
+
+Run the frontend unit tests, explicit type check, and production build:
+
+```powershell
+Set-Location frontend
+npm ci
+npm test
+npx tsc -b
+npm run build
+```
+
+The frontend tests use static fixtures and Node's built-in test runner. `npm run build` also runs TypeScript compilation before the Vite production build.
+
+## Troubleshooting
+
+- **Backend reports `GEMINI_API_KEY` is missing:** confirm `.env` exists at the repository root and contains a non-placeholder key; then recreate the backend container.
+- **Port 5173 or 8000 is already in use:** stop the conflicting local process or the existing Compose stack. For a second Vite instance, use `npm run dev -- --port=5174`.
+- **Frontend receives 503:** inspect sanitized backend diagnostics; Gemini may have exhausted its bounded retries or be temporarily unavailable.
+- **Frontend receives 500:** an unexpected generation failure occurred; inspect the sanitized backend diagnostics.
+- **Frontend receives 504:** Nginx did not receive a backend response within 180 seconds. The backend may still log a separate Gemini provider timeout or completion event.
+- **Containers do not become healthy:** run `docker compose ps` and `docker compose logs backend frontend`.
+- **Dependencies appear stale:** run `docker compose build --no-cache`, followed by `docker compose up`.
+- **Local Vite cannot reach FastAPI:** verify <http://localhost:8000/health> and use port 5173, which is allowed by the current backend CORS configuration.
+
+## Repository structure
+
+```text
+backend/app/agents/     LangGraph workflow, prompts, and LangChain tool adapters
+backend/app/rag/        Local TF-IDF retrieval
+backend/app/vehicles/   Dataset models, ingestion, repository, and deterministic tools
+backend/tests/          Offline backend test suite
+data/knowledge/         Curated, source-backed EV knowledge documents
+data/raw/               Original OpenEV Data source
+frontend/src/           React chat interface and Markdown rendering
+scripts/                Dataset ingestion entry point
+compose.yaml            Backend/frontend services and health checks
+```
+
+## Limitations and future improvements
+
+- Gemini availability and latency vary; multi-step requests can be slow even with parallel specialists and bounded retries.
+- Vehicle coverage is limited to 100 curated records from five manufacturers, not a live market inventory.
+- The knowledge corpus is small, static, and lexically retrieved; it is not a substitute for current manufacturer, charging-network, or regulatory information.
+- Conversation memory is in-process and disappears on restart; it is unsuitable for multiple backend workers without shared persistence.
+- Vehicle prices and availability are incomplete and can become outdated.
+- The API returns complete responses rather than streaming partial output.
+
+Reasonable next steps include streamed responses, persistent session storage, a broader and periodically refreshed dataset, expanded retrieval with evaluation, and deployment-oriented observability and access controls.

@@ -1,0 +1,37 @@
+{
+  "Tesla": {
+    "Cybertruck": "https://www.tesla.com/cybertruck",
+    "Model 3": "https://www.tesla.com/model3",
+    "Model S": "https://www.tesla.com/models",
+    "Model X": "https://www.tesla.com/modelx",
+    "Model Y": "https://www.tesla.com/modely"
+  },
+  "Volvo": {
+    "EC40": "https://www.volvocars.com/se/cars/ec40-electric/",
+    "EX30": "https://www.volvocars.com/se/cars/ex30-electric/",
+    "EX40": "https://www.volvocars.com/se/cars/ex40-electric/",
+    "EX90": "https://www.volvocars.com/se/cars/ex90-electric/"
+  },
+  "BMW": {
+    "i4": "https://www.bmw.se/sv/alla-modeller/i-series/i4/bmw-i4-gran-coupe.html",
+    "i5": "https://www.bmw.se/sv/alla-modeller/bmw-i/i5/bmw-i5-oeversikt.html",
+    "i7": "https://www.bmw.se/sv/alla-modeller/7-serie/sedan/bmw-i7-sedan.html",
+    "iX": "https://www.bmw.se/sv/alla-modeller/i-series/ix/bmw-ix-technische-daten.html",
+    "iX1": "https://www.bmw.se/sv/alla-modeller/i-series/ix1/bmw-ix1.html",
+    "iX2": "https://www.bmw.se/sv/alla-modeller/i-series/ix2/bmw-ix2-tekniska-data.html",
+    "iX3": "https://www.bmw.se/content/bmw/marketNORDICS/bmw_se/sv/alla-modeller/x-serie/ix3/bmw-ix3.html"
+  },
+  "Volkswagen": {
+    "ID.3": "https://www.volkswagen.se/sv/modeller/id3.html",
+    "ID.4": "https://www.volkswagen.se/sv/modeller/id4.html",
+    "ID.5": "https://www.volkswagen.se/sv/modeller/id5.html",
+    "ID.7": "https://www.volkswagen.se/sv/modeller/id7.html",
+    "ID. Buzz": "https://www.volkswagen-transportbilar.se/sv/modeller/id-buzz.html"
+  },
+  "Hyundai": {
+    "IONIQ 5": "https://www.hyundai.com/se/sv/bilar/ioniq5.html",
+    "IONIQ 6": "https://www.hyundai.com/se/sv/bilar/ioniq6.html",
+    "IONIQ 9": "https://www.hyundai.com/se/sv/bilar/ioniq9.html",
+    "Kona Electric": "https://www.hyundai.com/se/sv/bilar/kona-electric.html"
+  }
+}

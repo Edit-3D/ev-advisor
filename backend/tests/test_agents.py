@@ -1,10 +1,11 @@
 from collections import defaultdict
-from threading import Barrier
+from threading import Barrier, Event, Thread
 
 import pytest
 from langchain_core.messages import AIMessage
 
 from backend.app.agents.errors import AgentConfigurationError, AgentExecutionError
+from backend.app.agents.prompts import RESEARCH_PROMPT, SYNTHESIS_PROMPT, VEHICLE_PROMPT
 from backend.app.agents.tools import (
     charging_cost_tool,
     knowledge_search_tool,
@@ -13,6 +14,10 @@ from backend.app.agents.tools import (
 from backend.app.agents.workflow import (
     EVAdvisorWorkflow,
     SpecialistResult,
+    _requests_manufacturer_links,
+    _sanitize_source_links,
+    _specific_source_urls,
+    _strip_research_citations,
     get_workflow,
 )
 
@@ -125,6 +130,280 @@ def test_combined_specialists_run_concurrently_and_merge_state() -> None:
     assert result["citations"][0]["url"] == "https://example.com/cold"
 
 
+def test_vehicle_source_links_must_match_exact_official_tool_url() -> None:
+    volvo_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    tool_output = {
+        "results": [
+            {
+                "source_url": "https://www.volvocars.com/intl/v/cars/ex30",
+                "official_model_url": volvo_url,
+            },
+            {
+                "source_url": "https://www.hyundai.com/",
+                "official_model_url": None,
+            },
+        ]
+    }
+
+    allowed = _specific_source_urls(tool_output)
+    answer = (
+        f"[Volvo source]({volvo_url}) "
+        "[Dataset provenance](https://www.volvocars.com/intl/v/cars/ex30) "
+        "[Changed Volvo URL](https://www.volvocars.com/se/cars/ex30-electric) "
+        "[Invented Hyundai URL](https://www.hyundai.com/se/sv) "
+        "[Generic Hyundai homepage](https://www.hyundai.com/) "
+        "<https://www.hyundai.com/se/sv> and https://www.hyundai.com/se/sv."
+    )
+    sanitized = _sanitize_source_links(answer, allowed)
+
+    assert allowed == [volvo_url]
+    assert f"[Volvo source]({volvo_url})" in sanitized
+    assert "https://www.volvocars.com/intl/v/cars/ex30" not in sanitized
+    assert "https://www.volvocars.com/se/cars/ex30-electric)" not in sanitized
+    assert "https://www.hyundai.com" not in sanitized
+    assert "Changed Volvo URL" in sanitized
+    assert "Invented Hyundai URL" in sanitized
+
+
+def test_normal_standalone_comparison_does_not_gain_an_unrequested_link() -> None:
+    official_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "vehicle",
+        specialist_override=lambda name, messages: SpecialistResult(
+            f"The EX30 charges faster. [Official page]({official_url})",
+            ["compare_vehicles"],
+            [],
+            [official_url],
+        ),
+    )
+
+    result = workflow.invoke("Compare these vehicles", "comparison-without-links")
+
+    assert result["reply"] == "The EX30 charges faster. Official page"
+    assert official_url not in result["reply"]
+
+
+def test_explicit_official_link_survives_standalone_validation() -> None:
+    official_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "vehicle",
+        specialist_override=lambda name, messages: SpecialistResult(
+            f"[Official Volvo EX30 page]({official_url})",
+            ["search_vehicles"],
+            [],
+            [official_url],
+        ),
+    )
+
+    result = workflow.invoke("Give me the official EX30 link", "explicit-link")
+
+    assert result["reply"] == f"[Official Volvo EX30 page]({official_url})"
+
+
+def test_ordinary_combined_synthesis_removes_manufacturer_links() -> None:
+    volvo_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+
+    def specialist(name, messages):
+        return SpecialistResult(
+            f"{name} evidence",
+            [f"{name}_tool"],
+            [],
+            [volvo_url] if name == "vehicle" else [],
+        )
+
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "both",
+        specialist_override=specialist,
+        synthesis_override=lambda state: (
+            f"[Volvo]({volvo_url}) and "
+            "[Hyundai](https://www.hyundai.com/se/sv)"
+        ),
+    )
+
+    result = workflow.invoke("compare", "source-link-synthesis")
+
+    assert volvo_url not in result["reply"]
+    assert "Volvo" in result["reply"]
+    assert "https://www.hyundai.com" not in result["reply"]
+    assert "Hyundai" in result["reply"]
+
+
+def test_prompts_forbid_reconstructed_source_links() -> None:
+    assert "exact, non-null official_model_url returned by a vehicle" in VEHICLE_PROMPT
+    assert "source_url field is immutable dataset provenance" in VEHICLE_PROMPT
+    assert "never alter, localize, or reconstruct a URL" in SYNTHESIS_PROMPT
+    assert "Do not add manufacturer links by default" in VEHICLE_PROMPT
+    assert "when explicitly requested or genuinely useful" in SYNTHESIS_PROMPT
+    assert "exact configuration_label returned" in VEHICLE_PROMPT
+    assert "never merge trims or\nmodel years" in VEHICLE_PROMPT
+    assert "other trims\nor model years may differ" in VEHICLE_PROMPT
+    assert 'Do not automatically append a "For more details"' in VEHICLE_PROMPT
+    assert "Preserve exact configuration labels" in SYNTHESIS_PROMPT
+    assert "displayed exclusively from structured metadata" in SYNTHESIS_PROMPT
+    assert "Do not put research URLs" in RESEARCH_PROMPT
+
+
+def test_rag_link_is_removed_when_unrequested_manufacturer_link_is_removed() -> None:
+    official_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    rag_url = "https://afdc.energy.gov/vehicles/electric-consumers"
+
+    def specialist(name, messages):
+        citations = [{
+            "url": rag_url,
+            "title": "EV consumer guide",
+            "document_filename": "consumer.md",
+            "section_heading": "Winter use",
+        }] if name == "research" else []
+        return SpecialistResult(
+            f"{name} evidence",
+            [f"{name}_tool"],
+            citations,
+            [official_url] if name == "vehicle" else [rag_url],
+        )
+
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "both",
+        specialist_override=specialist,
+        synthesis_override=lambda state: (
+            f"[Official model]({official_url}) [Knowledge source]({rag_url})"
+        ),
+    )
+
+    result = workflow.invoke("compare winter use", "combined-link-preservation")
+
+    assert official_url not in result["reply"]
+    assert rag_url not in result["reply"]
+    assert "Knowledge source" not in result["reply"]
+    assert result["citations"][0]["url"] == rag_url
+
+
+def test_explicit_manufacturer_link_survives_combined_validation() -> None:
+    official_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    rag_url = "https://afdc.energy.gov/vehicles/electric-consumers"
+
+    def specialist(name, messages):
+        citations = [{
+            "url": rag_url,
+            "title": "EV consumer guide",
+            "document_filename": "consumer.md",
+            "section_heading": "Winter use",
+        }] if name == "research" else []
+        return SpecialistResult(
+            f"{name} evidence",
+            [f"{name}_tool"],
+            citations,
+            [official_url] if name == "vehicle" else [rag_url],
+        )
+
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "both",
+        specialist_override=specialist,
+        synthesis_override=lambda state: (
+            f"[Official model]({official_url}) [Knowledge source]({rag_url})"
+        ),
+    )
+
+    result = workflow.invoke(
+        "Compare winter use and give me the official website",
+        "combined-explicit-link",
+    )
+
+    assert official_url in result["reply"]
+    assert rag_url not in result["reply"]
+    assert "Knowledge source" not in result["reply"]
+    assert result["citations"][0]["url"] == rag_url
+
+
+def test_research_only_answer_moves_inline_citations_to_structured_metadata() -> None:
+    rag_url = "https://example.com/winter-range"
+    citation = {
+        "url": rag_url,
+        "title": "Winter Range Guide",
+        "document_filename": "winter.md",
+        "section_heading": "Cold weather",
+    }
+    report = (
+        f"Cold increases resistance ([Winter Range Guide]({rag_url})) [1].\n\n"
+        "- Precondition before departure.\n"
+        "- Use seat heating efficiently.\n\n"
+        "## Sources\n"
+        f"- [Winter Range Guide]({rag_url})"
+    )
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "research",
+        specialist_override=lambda name, messages: SpecialistResult(
+            report, ["search_ev_knowledge"], [citation, citation], [rag_url]
+        ),
+    )
+
+    result = workflow.invoke("Why does winter reduce range?", "research-citations")
+
+    assert result["reply"] == (
+        "Cold increases resistance.\n\n"
+        "- Precondition before departure.\n"
+        "- Use seat heating efficiently."
+    )
+    assert result["citations"] == [citation]
+
+
+def test_research_citation_cleanup_preserves_markdown_and_manufacturer_links() -> None:
+    rag_url = "https://example.com/charging"
+    manufacturer_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    text = (
+        "| Vehicle | Cost |\n| --- | ---: |\n| EX30 | €12 |\n\n"
+        "1. Keep the calculation.\n"
+        f"2. [Official EX30 page]({manufacturer_url})\n"
+        f"3. Guidance ([Charging Guide]({rag_url}))."
+    )
+    cleaned = _strip_research_citations(
+        text,
+        [{"url": rag_url, "title": "Charging Guide"}],
+    )
+
+    assert "| EX30 | €12 |" in cleaned
+    assert "1. Keep the calculation." in cleaned
+    assert f"[Official EX30 page]({manufacturer_url})" in cleaned
+    assert rag_url not in cleaned
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Compare the Volvo EX30 and Hyundai IONIQ 5.", False),
+        ("Recommend an EV for winter.", False),
+        ("Give me the official EX30 website.", True),
+        ("Can I have the manufacturer URLs?", True),
+        ("Link me to the IONIQ 5 page.", True),
+        ("Show me Volvo's official site.", True),
+    ],
+)
+def test_manufacturer_link_intent_comes_from_user_request(
+    message: str, expected: bool
+) -> None:
+    assert _requests_manufacturer_links(message) is expected
+
+
+def test_blank_tool_metadata_is_not_returned() -> None:
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "vehicle",
+        specialist_override=lambda name, messages: SpecialistResult(
+            "answer", ["", "  ", "compare_vehicles"], []
+        ),
+    )
+
+    result = workflow.invoke("Compare two vehicles", "metadata-filtering")
+
+    assert result["agents_invoked"] == ["vehicle"]
+    assert result["tools_called"] == ["compare_vehicles"]
+
+
 def test_combined_specialist_failure_prevents_synthesis() -> None:
     synthesis_called = False
 
@@ -148,6 +427,77 @@ def test_combined_specialist_failure_prevents_synthesis() -> None:
     with pytest.raises(AgentExecutionError, match="research failed"):
         workflow.invoke("combined", "parallel-failure")
     assert synthesis_called is False
+
+
+def test_retry_resumes_failed_checkpoint_without_duplicate_user_turn() -> None:
+    attempts = 0
+    observed_messages = []
+
+    def specialist(name, messages):
+        nonlocal attempts
+        attempts += 1
+        observed_messages.append([message.content for message in messages])
+        if attempts == 1:
+            raise AgentExecutionError("temporary failure")
+        return SpecialistResult("recovered", ["search_vehicles"], [])
+
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "vehicle",
+        specialist_override=specialist,
+    )
+
+    with pytest.raises(AgentExecutionError, match="temporary failure"):
+        workflow.invoke("Find an EV", "retry-checkpoint")
+    result = workflow.invoke("Find an EV", "retry-checkpoint", retry=True)
+
+    assert result["reply"] == "recovered"
+    assert observed_messages == [["Find an EV"], ["Find an EV"]]
+
+
+def test_cooperative_cancellation_leaves_a_resumable_checkpoint() -> None:
+    started = Event()
+    release = Event()
+    cancellation = Event()
+    outcomes = []
+
+    class BlockingThenSuccessfulModel:
+        calls = 0
+
+        def invoke(self, messages):
+            self.calls += 1
+            if self.calls == 1:
+                started.set()
+                assert release.wait(timeout=2)
+            return AIMessage(content="completed")
+
+    model = BlockingThenSuccessfulModel()
+    workflow = EVAdvisorWorkflow(model, router_override=lambda messages: "direct")
+
+    def run() -> None:
+        try:
+            workflow.invoke(
+                "Hello",
+                "cancel-checkpoint",
+                cancellation_event=cancellation,
+            )
+        except AgentExecutionError as error:
+            outcomes.append(error)
+
+    thread = Thread(target=run)
+    thread.start()
+    assert started.wait(timeout=2)
+    cancellation.set()
+    release.set()
+    thread.join(timeout=2)
+
+    assert len(outcomes) == 1
+    result = workflow.invoke("Hello", "cancel-checkpoint", retry=True)
+    state = workflow.graph.get_state(
+        {"configurable": {"thread_id": "cancel-checkpoint"}}
+    )
+    assert result["reply"] == "completed"
+    assert [message.content for message in state.values["messages"]].count("Hello") == 1
 
 
 def test_existing_vehicle_and_research_tools_are_callable() -> None:

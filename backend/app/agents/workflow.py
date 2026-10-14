@@ -4,11 +4,14 @@ import json
 import logging
 import os
 import random
+import re
 import time
+from threading import Event
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Annotated, Any, Callable, Literal, TypedDict
+from urllib.parse import urlparse
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, RemoveMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
@@ -19,7 +22,11 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel
 from google.genai.errors import APIError
 
-from backend.app.agents.errors import AgentConfigurationError, AgentExecutionError
+from backend.app.agents.errors import (
+    AgentConfigurationError,
+    AgentExecutionError,
+    WorkflowCancelledError,
+)
 from backend.app.agents.prompts import (
     COLLABORATIVE_MODE_PROMPT,
     DIRECT_PROMPT,
@@ -35,7 +42,19 @@ from backend.app.agents.tools import RESEARCH_TOOLS, VEHICLE_TOOLS
 Destination = Literal["vehicle", "research", "both", "direct"]
 LOGGER = logging.getLogger(__name__)
 _DIAGNOSTICS: ContextVar[dict[str, Any] | None] = ContextVar("workflow_diagnostics", default=None)
+_CANCELLATION_EVENT: ContextVar[Event | None] = ContextVar("workflow_cancellation", default=None)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+_MARKDOWN_HTTP_LINK = re.compile(r'\[([^\]]+)\]\((https?://[^\s)]+)(?:\s+"[^"]*")?\)')
+_MARKDOWN_HTTP_AUTOLINK = re.compile(r"<(https?://[^\s>]+)>")
+_BARE_HTTP_URL = re.compile(r"https?://[^\s<>()\]]+")
+_RESEARCH_SOURCE_SECTION = re.compile(
+    r"(?ims)^#{1,6}\s*(?:sources|references)\s*$.*?(?=^#{1,6}\s|\Z)"
+)
+_CITATION_MARKER = re.compile(r"(?i)(?<!\!)\[(?:source\s*)?\d+\]")
+_MANUFACTURER_LINK_REQUEST = re.compile(
+    r"\b(?:link|links|url|urls|site|sites|website|websites|webpage|webpages|web\s+page|web\s+pages)\b",
+    re.IGNORECASE,
+)
 
 
 class RouteDecision(BaseModel):
@@ -50,6 +69,9 @@ class AgentState(TypedDict, total=False):
     vehicle_tools: list[str]
     research_tools: list[str]
     research_citations: list[dict[str, str]]
+    vehicle_source_urls: list[str]
+    research_source_urls: list[str]
+    manufacturer_links_requested: bool
 
 
 @dataclass
@@ -57,6 +79,7 @@ class SpecialistResult:
     report: str
     tools_called: list[str]
     citations: list[dict[str, str]]
+    source_urls: list[str] = field(default_factory=list)
 
 
 RouterOverride = Callable[[list[BaseMessage]], Destination]
@@ -80,6 +103,107 @@ def _history(messages: list[BaseMessage], limit: int = 12) -> list[BaseMessage]:
     return messages[-limit:]
 
 
+def _requests_manufacturer_links(message: str) -> bool:
+    """Recognize an explicit request for pages/URLs without consulting generated text."""
+    return bool(_MANUFACTURER_LINK_REQUEST.search(message))
+
+
+def _specific_source_urls(value: Any) -> list[str]:
+    """Collect only response-link fields supplied by tools, without rewriting URLs."""
+    urls: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            candidates = child if key == "source_urls" and isinstance(child, list) else [child]
+            if key in {"official_model_url", "source_urls"}:
+                for candidate in candidates:
+                    if isinstance(candidate, str):
+                        parsed = urlparse(candidate)
+                        if parsed.scheme in {"http", "https"} and parsed.netloc and parsed.path.strip("/"):
+                            urls.append(candidate)
+            else:
+                urls.extend(_specific_source_urls(child))
+    elif isinstance(value, list):
+        for child in value:
+            urls.extend(_specific_source_urls(child))
+    return list(dict.fromkeys(urls))
+
+
+def _sanitize_source_links(text: str, allowed_urls: list[str]) -> str:
+    """Keep generated Markdown links only when their URL exactly matches tool evidence."""
+    allowed = set(allowed_urls)
+    sanitized = _MARKDOWN_HTTP_LINK.sub(
+        lambda match: match.group(0) if match.group(2) in allowed else match.group(1),
+        text,
+    )
+    sanitized = _MARKDOWN_HTTP_AUTOLINK.sub(
+        lambda match: match.group(0) if match.group(1) in allowed else "",
+        sanitized,
+    )
+
+    def keep_allowed_bare_url(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        url = raw.rstrip(".,;:!?")
+        suffix = raw[len(url) :]
+        return raw if url in allowed else suffix
+
+    return _BARE_HTTP_URL.sub(keep_allowed_bare_url, sanitized)
+
+
+def _strip_research_citations(
+    text: str, citations: list[dict[str, str]]
+) -> str:
+    """Remove only citations tied to structured RAG metadata from answer Markdown."""
+    urls = {item.get("url", "").strip() for item in citations if item.get("url")}
+    titles = {item.get("title", "").strip() for item in citations if item.get("title")}
+    if not urls and not titles:
+        return text
+
+    def is_research_url(url: str) -> bool:
+        return url in urls
+
+    # Exact Sources/References headings are citation UI duplication whenever
+    # structured research citations exist.
+    text = _RESEARCH_SOURCE_SECTION.sub("", text)
+
+    parenthetical_link = re.compile(
+        r"\(\s*\[([^\]]+)\]\((https?://[^\s)]+)(?:\s+\"[^\"]*\")?\)\s*\)"
+    )
+    text = parenthetical_link.sub(
+        lambda match: "" if is_research_url(match.group(2)) else match.group(0), text
+    )
+
+    def replace_link(match: re.Match[str]) -> str:
+        label, url = match.group(1), match.group(2)
+        if not is_research_url(url):
+            return match.group(0)
+        normalized_label = label.strip()
+        if normalized_label in titles or re.fullmatch(
+            r"(?i)(?:(?:source|reference)\s*)?\d+|(?:knowledge\s+)?(?:source|reference)",
+            normalized_label,
+        ):
+            return ""
+        return label
+
+    text = _MARKDOWN_HTTP_LINK.sub(replace_link, text)
+    text = _MARKDOWN_HTTP_AUTOLINK.sub(
+        lambda match: "" if is_research_url(match.group(1)) else match.group(0), text
+    )
+
+    def replace_bare_url(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        url = raw.rstrip(".,;:!?")
+        return raw[len(url) :] if is_research_url(url) else raw
+
+    text = _BARE_HTTP_URL.sub(replace_bare_url, text)
+    for title in sorted(titles, key=len, reverse=True):
+        if title:
+            text = re.sub(rf"\(\s*{re.escape(title)}\s*\)", "", text)
+    text = _CITATION_MARKER.sub("", text)
+    text = re.sub(r"[ \t]+([.,;:!?])", r"\1", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 class EVAdvisorWorkflow:
     def __init__(
         self,
@@ -100,9 +224,11 @@ class EVAdvisorWorkflow:
         diagnostics = _DIAGNOSTICS.get()
         max_retries = 2
         for attempt in range(max_retries + 1):
+            self._raise_if_cancelled()
             started = time.perf_counter()
             try:
                 result = runnable.invoke(messages)
+                self._raise_if_cancelled()
                 if diagnostics is not None:
                     diagnostics["gemini_calls"].append(
                         {"stage": stage, "attempt": attempt + 1, "duration_s": round(time.perf_counter() - started, 3), "success": True}
@@ -135,7 +261,17 @@ class EVAdvisorWorkflow:
                     "gemini_retry stage=%s attempt=%d error_type=%s status=%s delay_s=%.2f",
                     stage, attempt + 1, type(error).__name__, status, delay,
                 )
-                time.sleep(delay)
+                cancellation = _CANCELLATION_EVENT.get()
+                if cancellation is not None and cancellation.wait(delay):
+                    raise WorkflowCancelledError("The client disconnected.")
+                if cancellation is None:
+                    time.sleep(delay)
+
+    @staticmethod
+    def _raise_if_cancelled() -> None:
+        cancellation = _CANCELLATION_EVENT.get()
+        if cancellation is not None and cancellation.is_set():
+            raise WorkflowCancelledError("The client disconnected.")
 
     def _record_stage(self, stage: str, started: float) -> None:
         diagnostics = _DIAGNOSTICS.get()
@@ -207,6 +343,8 @@ class EVAdvisorWorkflow:
             "vehicle_tools": [],
             "research_tools": [],
             "research_citations": [],
+            "vehicle_source_urls": [],
+            "research_source_urls": [],
         }
 
     def _run_specialist(
@@ -229,7 +367,9 @@ class EVAdvisorWorkflow:
         ]
         tools_called: list[str] = []
         citations: list[dict[str, str]] = []
+        source_urls: list[str] = []
         for iteration in range(4):
+            self._raise_if_cancelled()
             try:
                 bound = self.model.bind_tools(
                     tools, tool_choice="any" if iteration == 0 else "auto"
@@ -244,16 +384,18 @@ class EVAdvisorWorkflow:
                 report = _text(response)
                 if not report:
                     raise AgentExecutionError(f"The {name} agent returned an empty response.")
-                return SpecialistResult(report, tools_called, citations)
+                return SpecialistResult(report, tools_called, citations, source_urls)
 
             for call in response.tool_calls:
-                tool_name = call.get("name", "unknown")
+                self._raise_if_cancelled()
+                tool_name = str(call.get("name") or "unknown")
                 tools_called.append(tool_name)
                 tool_started = time.perf_counter()
                 tool_success = False
                 try:
                     selected_tool = tool_map[tool_name]
                     output = selected_tool.invoke(call.get("args", {}))
+                    source_urls.extend(_specific_source_urls(output))
                     if tool_name == "search_ev_knowledge":
                         for item in output.get("results", []):
                             for url in item.get("source_urls", []):
@@ -299,6 +441,7 @@ class EVAdvisorWorkflow:
         return {
             "vehicle_report": result.report,
             "vehicle_tools": result.tools_called,
+            "vehicle_source_urls": list(dict.fromkeys(result.source_urls)),
         }
 
     def _research_agent(self, state: AgentState) -> dict[str, Any]:
@@ -318,6 +461,7 @@ class EVAdvisorWorkflow:
             "research_report": result.report,
             "research_tools": result.tools_called,
             "research_citations": list(unique_citations.values()),
+            "research_source_urls": list(dict.fromkeys(result.source_urls)),
         }
 
     def _direct_response(self, state: AgentState) -> dict[str, Any]:
@@ -339,7 +483,17 @@ class EVAdvisorWorkflow:
         )
         if not report or not report.strip():
             raise AgentExecutionError("The specialist returned an empty response.")
-        return {"messages": [AIMessage(content=report)]}
+        answer = report
+        if state["destination"] == "research":
+            answer = _strip_research_citations(
+                answer, state.get("research_citations", [])
+            )
+        source_urls: list[str] = []
+        if state["destination"] == "vehicle" and state.get(
+            "manufacturer_links_requested", False
+        ):
+            source_urls = state.get("vehicle_source_urls", [])
+        return {"messages": [AIMessage(content=_sanitize_source_links(answer, source_urls))]}
 
     def _synthesize(self, state: AgentState) -> dict[str, Any]:
         started = time.perf_counter()
@@ -365,18 +519,41 @@ class EVAdvisorWorkflow:
             raise AgentExecutionError("Gemini could not synthesize the specialist results.") from error
         finally:
             self._record_stage("synthesis", started)
-        return {"messages": [AIMessage(content=answer)]}
+        answer = _strip_research_citations(
+            answer, state.get("research_citations", [])
+        )
+        allowed_urls: list[str] = []
+        if state.get("manufacturer_links_requested", False):
+            allowed_urls.extend(state.get("vehicle_source_urls", []))
+        return {"messages": [AIMessage(content=_sanitize_source_links(answer, allowed_urls))]}
 
-    def invoke(self, message: str, conversation_id: str) -> dict[str, Any]:
+    def invoke(
+        self,
+        message: str,
+        conversation_id: str,
+        *,
+        retry: bool = False,
+        cancellation_event: Event | None = None,
+    ) -> dict[str, Any]:
         started = time.perf_counter()
         diagnostics: dict[str, Any] = {
             "gemini_calls": [], "tool_calls": [], "stages_s": {}, "retry_count": 0
         }
         token = _DIAGNOSTICS.set(diagnostics)
+        cancellation_token = _CANCELLATION_EVENT.set(cancellation_event)
         try:
+            self._raise_if_cancelled()
+            config = {"configurable": {"thread_id": conversation_id}}
+            has_checkpoint = bool(self.graph.get_state(config).values) if retry else False
+            graph_input = None if has_checkpoint else {
+                    "messages": [HumanMessage(content=message)],
+                    "manufacturer_links_requested": _requests_manufacturer_links(
+                        message
+                    ),
+                }
             result = self.graph.invoke(
-                {"messages": [HumanMessage(content=message)]},
-                config={"configurable": {"thread_id": conversation_id}},
+                graph_input,
+                config=config,
             )
         except AgentExecutionError as error:
             diagnostics.update(
@@ -395,6 +572,7 @@ class EVAdvisorWorkflow:
             LOGGER.error("workflow_diagnostics %s", json.dumps(diagnostics, default=str))
             raise AgentExecutionError("The EV Advisor workflow failed.") from error
         finally:
+            _CANCELLATION_EVENT.reset(cancellation_token)
             _DIAGNOSTICS.reset(token)
         diagnostics.update(total_duration_s=round(time.perf_counter() - started, 3), success=True)
         # Uvicorn's default production logging level reliably emits WARNING.
@@ -403,10 +581,14 @@ class EVAdvisorWorkflow:
         tools_called = []
         if result.get("vehicle_report") is not None:
             agents_invoked.append("vehicle")
-            tools_called.extend(result.get("vehicle_tools", []))
+            tools_called.extend(
+                item for item in result.get("vehicle_tools", []) if item.strip()
+            )
         if result.get("research_report") is not None:
             agents_invoked.append("research")
-            tools_called.extend(result.get("research_tools", []))
+            tools_called.extend(
+                item for item in result.get("research_tools", []) if item.strip()
+            )
         return {
             "reply": _text(result["messages"][-1]),
             "citations": result.get("research_citations", []),
@@ -422,7 +604,7 @@ def get_workflow() -> EVAdvisorWorkflow:
     if not api_key:
         raise AgentConfigurationError("GEMINI_API_KEY is not configured on the backend.")
     model = ChatGoogleGenerativeAI(
-        model=os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
+        model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
         api_key=api_key,
         temperature=0.1,
         request_timeout=60,

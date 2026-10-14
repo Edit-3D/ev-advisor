@@ -1,7 +1,8 @@
+import asyncio
+from threading import Event
 from uuid import uuid4
 
-from fastapi import FastAPI
-from fastapi import Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.agents import EVAdvisorWorkflow, get_workflow
@@ -24,7 +25,13 @@ def get_chat_workflow() -> EVAdvisorWorkflow:
     try:
         return get_workflow()
     except AgentConfigurationError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "configuration_error",
+                "message": "EV Advisor is not configured correctly.",
+            },
+        ) from error
 
 
 @app.get("/health")
@@ -32,20 +39,81 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _root_error(error: BaseException) -> BaseException:
+    current = error
+    seen: set[int] = set()
+    while current.__cause__ is not None and id(current) not in seen:
+        seen.add(id(current))
+        current = current.__cause__
+    return current
+
+
+def _execution_error_response(error: AgentExecutionError) -> HTTPException:
+    cause = _root_error(error)
+    status = getattr(cause, "code", None) or getattr(cause, "status_code", None)
+    if isinstance(cause, TimeoutError) or status == 504:
+        return HTTPException(
+            status_code=504,
+            detail={"code": "request_timeout", "message": "This response took too long. Please try again."},
+        )
+    if status in {429, 500, 502, 503}:
+        return HTTPException(
+            status_code=503,
+            detail={
+                "code": "ai_provider_unavailable",
+                "message": "The AI service is temporarily unavailable. Please try again shortly.",
+            },
+        )
+    return HTTPException(
+        status_code=500,
+        detail={
+            "code": "generation_failed",
+            "message": "Something went wrong while generating your response. Please try again.",
+        },
+    )
+
+
 @app.post("/chat", response_model=ChatResponse)
-def chat(
-    request: ChatRequest,
+async def chat(
+    payload: ChatRequest,
+    request: Request,
     workflow: EVAdvisorWorkflow = Depends(get_chat_workflow),
 ) -> ChatResponse:
-    conversation_id = request.conversation_id or uuid4().hex
+    conversation_id = payload.conversation_id or uuid4().hex
+    cancellation = Event()
+    task = asyncio.create_task(
+        asyncio.to_thread(
+            workflow.invoke,
+            payload.message,
+            conversation_id,
+            retry=payload.retry,
+            cancellation_event=cancellation,
+        )
+    )
     try:
-        result = workflow.invoke(request.message, conversation_id)
+        while not task.done():
+            await asyncio.wait({task}, timeout=0.1)
+            if await request.is_disconnected():
+                cancellation.set()
+                try:
+                    await task
+                except Exception:
+                    pass
+                raise HTTPException(status_code=499, detail={"code": "client_closed_request", "message": "Request cancelled."})
+        result = await task
+    except asyncio.CancelledError:
+        cancellation.set()
+        try:
+            await asyncio.shield(task)
+        except Exception:
+            pass
+        raise
     except AgentConfigurationError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
-    except AgentExecutionError as error:
         raise HTTPException(
-            status_code=502,
-            detail="EV Advisor could not complete the request. Please try again.",
+            status_code=503,
+            detail={"code": "configuration_error", "message": "EV Advisor is not configured correctly."},
         ) from error
+    except AgentExecutionError as error:
+        raise _execution_error_response(error) from error
     result.pop("_diagnostics", None)
     return ChatResponse(conversation_id=conversation_id, **result)

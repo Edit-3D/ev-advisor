@@ -1,15 +1,9 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import DetailsPanel, { Citation, DetailsView, hasExecutionMetadata, uniqueCitations } from "./DetailsPanel";
 import MarkdownMessage from "./MarkdownMessage";
+import { PREVIEW_SCENARIOS, PreviewFailure, PreviewMessage, PreviewScenario, PreviewScenarioId } from "./previewFixtures";
 
-type Citation = { url: string; title: string; document_filename: string; section_heading: string };
-type Message = {
-  id: number;
-  role: "user" | "assistant";
-  text: string;
-  citations?: Citation[];
-  agentsInvoked?: string[];
-  toolsCalled?: string[];
-};
+type Message = PreviewMessage;
 type ChatResponse = {
   reply: string;
   conversation_id: string;
@@ -17,89 +11,119 @@ type ChatResponse = {
   agents_invoked?: string[];
   tools_called?: string[];
 };
+type RequestFailure = PreviewFailure;
+type ApiErrorBody = { detail?: { code?: string; message?: string } | string };
+type Theme = "dark" | "light";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const EXAMPLE_QUESTIONS = [
-  "Find three Volvo EVs with at least 400 km rated range.",
-  "Compare the Volvo EX30 and Hyundai IONIQ 5.",
-  "Why does cold weather reduce EV range?",
-  "What would it cost to charge a Tesla Model Y from 20% to 80% at €0.30/kWh?",
+  { topic: "Find an EV", label: "Find EVs with 400+ km range", question: "Find electric SUVs with at least 400 km of range." },
+  { topic: "EV knowledge", label: "Why does cold reduce EV range?", question: "Why does cold weather reduce EV range?" },
+  { topic: "Charging costs", label: "Calculate Volvo EX30 charging costs", question: "What does it cost to charge a Volvo EX30 from 20% to 80% at 3 SEK/kWh?" },
+  { topic: "Compare EVs", label: "Compare EVs for Swedish winters", question: "Compare the Volvo EX30 and Hyundai IONIQ 5 for winter driving in Sweden. Include range, charging speeds, and cold-weather effects." },
 ];
-const DEVELOPMENT_PREVIEW = import.meta.env.DEV &&
-  new URLSearchParams(window.location.search).get("preview") === "markdown";
-const PREVIEW_MESSAGE: Message = {
-  id: -1,
-  role: "assistant",
-  text: `## Winter EV comparison
+const PREVIEW_MODE = import.meta.env.DEV && import.meta.env.VITE_PREVIEW_MODE === "true";
 
-Both cars are capable, but their strengths differ:
+function BoltLogo({ className }: { className: string }) {
+  return <span className={className} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.4 2 5.8 13h5.1l-.7 9L18.3 10h-5.1l.2-8Z" /></svg></span>;
+}
 
-| Vehicle | Rated range | DC charging | Best suited to |
-| --- | ---: | ---: | --- |
-| **Volvo EX30** | 476 km WLTP | 153 kW | Compact urban driving |
-| **Hyundai IONIQ 5** | 507 km WLTP | 220 kW | Longer trips and faster charging |
-
-### Practical considerations
-
-- Expect lower real-world range in cold weather.
-- Preconditioning can improve charging performance.
-- Compare the exact configuration because specifications may differ.
-
-Use the vehicle ID in \`compare_vehicles\` when checking exact configurations.
-
-[Read the EV Database winter range guide](https://ev-database.org/cheatsheet/range-electric-car).`,
-  citations: [{
-    url: "https://ev-database.org/cheatsheet/range-electric-car",
-    title: "EV Database",
-    document_filename: "winter-range.md",
-    section_heading: "Real-world range",
-  }],
-  agentsInvoked: ["vehicle", "research"],
-  toolsCalled: ["compare_vehicles", "search_ev_knowledge"],
+type ChatComposerProps = {
+  centered?: boolean;
+  input: string;
+  isLoading: boolean;
+  onInputChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-function ExecutionSummary({ message }: { message: Message }) {
-  const agents = message.agentsInvoked ?? [];
-  const tools = message.toolsCalled ?? [];
-  if (agents.length === 0 && tools.length === 0) return null;
-
+function ChatComposer({ centered = false, input, isLoading, onInputChange, onSubmit }: ChatComposerProps) {
   return (
-    <details className="execution-summary">
-      <summary>How this answer was prepared</summary>
-      <div className="execution-details">
-        {agents.length > 0 && <div><strong>Agents</strong><ul>{agents.map((agent, index) => <li key={`${agent}-${index}`}><code>{agent}</code></li>)}</ul></div>}
-        {tools.length > 0 && <div><strong>Tools</strong><ul>{tools.map((tool, index) => <li key={`${tool}-${index}`}><code>{tool}</code></li>)}</ul></div>}
+    <form className={`composer ${centered ? "welcome-composer" : ""}`} onSubmit={onSubmit}>
+      {!centered && <label htmlFor="message">What are you looking for?</label>}
+      <div className="composer-row">
+        <input
+          id="message"
+          value={input}
+          onChange={(event) => onInputChange(event.target.value)}
+          placeholder={PREVIEW_MODE ? "Preview mode: backend requests are disabled" : "Ask about EVs, charging, range, or batteries..."}
+          disabled={isLoading || PREVIEW_MODE}
+          autoComplete="off"
+          aria-label={centered ? "Ask EV Advisor" : undefined}
+        />
+        <button type="submit" disabled={PREVIEW_MODE || isLoading || !input.trim()}>{isLoading ? "Sending…" : "Send"}</button>
       </div>
-    </details>
+    </form>
   );
 }
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>(DEVELOPMENT_PREVIEW ? [PREVIEW_MESSAGE] : []);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<RequestFailure | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [details, setDetails] = useState<{ message: Message; view: DetailsView } | null>(null);
+  const [previewScenario, setPreviewScenario] = useState<PreviewScenarioId>("welcome");
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const saved = window.localStorage.getItem("ev-advisor-theme");
+      const initial = saved === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = initial;
+      return initial;
+    } catch {
+      return "dark";
+    }
+  });
+  const activeController = useRef<AbortController | null>(null);
+  const activeRequest = useRef<{ message: string; conversationId: string } | null>(null);
+  const requestVersion = useRef(0);
 
-  async function sendMessage(message: string) {
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { window.localStorage.setItem("ev-advisor-theme", theme); } catch { /* Storage can be unavailable. */ }
+  }, [theme]);
+
+  useEffect(() => () => {
+    requestVersion.current += 1;
+    activeController.current?.abort();
+  }, []);
+
+  async function sendMessage(message: string, options: { appendUser?: boolean; retry?: boolean; conversationId?: string | null } = {}) {
+    if (PREVIEW_MODE) return;
     if (!message || isLoading) return;
-    setMessages((current) => [...current, { id: Date.now(), role: "user", text: message }]);
+    const appendUser = options.appendUser ?? true;
+    const requestedConversationId = options.conversationId === undefined ? conversationId : options.conversationId;
+    const requestConversationId = requestedConversationId ?? window.crypto.randomUUID();
+    if (appendUser) setMessages((current) => [...current, { id: Date.now(), role: "user", text: message }]);
     setInput("");
-    setError(null);
+    setFailure(null);
     setIsLoading(true);
+    const controller = new AbortController();
+    activeController.current = controller;
+    activeRequest.current = { message, conversationId: requestConversationId };
+    const version = ++requestVersion.current;
 
     try {
       const response = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, conversation_id: conversationId }),
+        body: JSON.stringify({ message, conversation_id: requestConversationId, retry: options.retry ?? false }),
+        signal: controller.signal,
       });
       if (!response.ok) {
-        if (response.status === 504) throw new Error("EV Advisor took too long to respond. Please try again.");
-        throw new Error(`Request failed (${response.status})`);
+        let body: ApiErrorBody = {};
+        try { body = await response.json() as ApiErrorBody; } catch { /* Use status fallback below. */ }
+        const backendMessage = typeof body.detail === "object" ? body.detail?.message : undefined;
+        const fallback = response.status === 504
+          ? "This response took too long. Please try again."
+          : response.status >= 500
+            ? "Something went wrong while generating your response. Please try again."
+            : "EV Advisor could not process that request. Please try again.";
+        throw new Error(backendMessage || fallback);
       }
 
       const data: ChatResponse = await response.json();
+      if (version !== requestVersion.current || controller.signal.aborted) return;
       setConversationId(data.conversation_id);
       setMessages((current) => [...current, {
         id: Date.now(),
@@ -110,10 +134,37 @@ function App() {
         toolsCalled: data.tools_called,
       }]);
     } catch (requestError) {
-      const detail = requestError instanceof Error ? requestError.message : "Unknown error";
-      setError(`Could not reach EV Advisor. ${detail}`);
+      if (version !== requestVersion.current || controller.signal.aborted) return;
+      const friendlyMessage = requestError instanceof TypeError
+        ? "Unable to connect to EV Advisor. Check your connection and try again."
+        : requestError instanceof Error
+          ? requestError.message
+          : "Something went wrong while generating your response. Please try again.";
+      setFailure({ message: friendlyMessage, originalMessage: activeRequest.current?.message ?? message, conversationId: requestConversationId, stopped: false });
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) {
+        setIsLoading(false);
+        activeController.current = null;
+        activeRequest.current = null;
+      }
+    }
+  }
+
+  function stopGenerating() {
+    if (!isLoading || !activeController.current) return;
+    const stoppedRequest = activeRequest.current;
+    requestVersion.current += 1;
+    activeController.current.abort();
+    activeController.current = null;
+    activeRequest.current = null;
+    setIsLoading(false);
+    setFailure({ message: "Response stopped", originalMessage: stoppedRequest?.message ?? "", conversationId: stoppedRequest?.conversationId ?? conversationId, stopped: true });
+  }
+
+  function retryLastRequest() {
+    if (!failure || isLoading) return;
+    if (failure.originalMessage) {
+      void sendMessage(failure.originalMessage, { appendUser: false, retry: true, conversationId: failure.conversationId });
     }
   }
 
@@ -123,33 +174,72 @@ function App() {
   }
 
   function startNewChat() {
-    if (isLoading) return;
+    if (PREVIEW_MODE) {
+      applyPreviewScenario("welcome");
+      return;
+    }
+    requestVersion.current += 1;
+    activeController.current?.abort();
+    activeController.current = null;
+    activeRequest.current = null;
+    setIsLoading(false);
     setConversationId(null);
-    setError(null);
+    setFailure(null);
     setInput("");
     setMessages([]);
+    setDetails(null);
   }
 
+  function applyPreviewScenario(id: PreviewScenarioId) {
+    const scenario: PreviewScenario = PREVIEW_SCENARIOS[id];
+    requestVersion.current += 1;
+    activeController.current?.abort();
+    activeController.current = null;
+    activeRequest.current = null;
+    setPreviewScenario(id);
+    setMessages([...scenario.messages]);
+    setInput("");
+    setConversationId(null);
+    setIsLoading(scenario.loading ?? false);
+    setFailure(scenario.failure ?? null);
+    const assistant = [...scenario.messages].reverse().find((message) => message.role === "assistant");
+    setDetails(scenario.detailsView && assistant ? { message: assistant, view: scenario.detailsView } : null);
+  }
+
+  const isWelcome = messages.length === 0 && !isLoading && !failure;
+
   return (
-    <main className="page-shell">
+    <main className={`page-shell ${details ? "has-details-panel" : ""}`} data-theme={theme}>
       <section className="chat-card" aria-labelledby="page-title">
         <header className="chat-header">
-          <div className="brand-mark" aria-hidden="true">EV</div>
-          <div className="brand-copy"><p className="eyebrow">Electric mobility, made clearer</p><h1 id="page-title">EV Advisor</h1></div>
-          <button className="new-chat" type="button" onClick={startNewChat} disabled={isLoading}>New Chat</button>
+          <BoltLogo className="brand-mark" />
+          <div className="brand-copy"><h1 id="page-title">EV Advisor</h1><p className="eyebrow">Electric mobility, made clearer</p></div>
+          <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
+            <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
+          </button>
+          <button className="new-chat" type="button" onClick={startNewChat}>New Chat</button>
         </header>
 
-        <div className={`messages ${messages.length === 0 ? "is-welcome" : ""}`} aria-live="polite">
-          {messages.length === 0 && !isLoading && (
+        {PREVIEW_MODE && (
+          <div className="preview-toolbar" role="region" aria-label="Development preview controls">
+            <label htmlFor="preview-scenario">UI preview</label>
+            <select id="preview-scenario" value={previewScenario} onChange={(event) => applyPreviewScenario(event.target.value as PreviewScenarioId)}>
+              {Object.entries(PREVIEW_SCENARIOS).map(([id, scenario]) => <option key={id} value={id}>{scenario.label}</option>)}
+            </select>
+            <span>Development only · backend requests disabled</span>
+          </div>
+        )}
+
+        <div className={`messages ${isWelcome ? "is-welcome" : ""}`} aria-live="polite">
+          {isWelcome && (
             <section className="welcome" aria-labelledby="welcome-title">
-              <div className="welcome-icon" aria-hidden="true">⚡</div>
-              <p className="welcome-kicker">Your electric-car research companion</p>
-              <h2 id="welcome-title">Find an EV that fits your life</h2>
-              <p className="welcome-copy">Explore vehicle specifications, compare models, estimate charging costs, and understand batteries, range, and ownership using curated data and sources.</p>
+              <h2 id="welcome-title">Where should we start?</h2>
+              <p className="welcome-copy">Explore electric vehicles with data-backed comparisons, charging estimates, and practical EV knowledge.</p>
+              <ChatComposer centered input={input} isLoading={isLoading} onInputChange={setInput} onSubmit={handleSubmit} />
               <div className="example-prompts" aria-label="Example questions">
-                {EXAMPLE_QUESTIONS.map((question) => (
-                  <button key={question} type="button" onClick={() => void sendMessage(question)} disabled={isLoading}>
-                    <span>{question}</span><span aria-hidden="true">→</span>
+                {EXAMPLE_QUESTIONS.map(({ topic, label, question }) => (
+                  <button key={question} type="button" onClick={() => void sendMessage(question)} disabled={isLoading || PREVIEW_MODE}>
+                    <span><small>{topic}</small>{label}</span><span aria-hidden="true">→</span>
                   </button>
                 ))}
               </div>
@@ -158,31 +248,60 @@ function App() {
 
           {messages.map((message) => (
             <article className={`message ${message.role}`} key={message.id}>
-              <span>{message.role === "user" ? "You" : "EV Advisor"}</span>
+              {message.role === "assistant" ? (
+                <div className="assistant-identity"><BoltLogo className="assistant-avatar" /><span>EV Advisor</span></div>
+              ) : <span>You</span>}
               {message.role === "assistant" ? <MarkdownMessage>{message.text}</MarkdownMessage> : <p>{message.text}</p>}
-              {message.citations && message.citations.length > 0 && (
-                <ul className="citations" aria-label="Sources">
-                  {message.citations.map((citation) => <li key={`${message.id}-${citation.url}`}><a href={citation.url} target="_blank" rel="noreferrer">{citation.title}: {citation.section_heading}</a></li>)}
-                </ul>
-              )}
-              {message.role === "assistant" && <ExecutionSummary message={message} />}
+              {message.role === "assistant" && (() => {
+                const sourceCount = uniqueCitations(message.citations ?? []).length;
+                const hasTrace = hasExecutionMetadata(message.agentsInvoked ?? [], message.toolsCalled ?? []);
+                if (sourceCount === 0 && !hasTrace) return null;
+                return (
+                  <div className="message-actions" aria-label="Answer details">
+                    {sourceCount > 0 && (
+                      <button type="button" aria-haspopup="dialog" aria-label={`Open sources (${sourceCount})`} onClick={() => setDetails({ message, view: "sources" })}>
+                        <svg className="message-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h5v16H7a2.5 2.5 0 0 0-2.5 2V5.5Zm15 0A2.5 2.5 0 0 0 17 3h-5v16h5a2.5 2.5 0 0 1 2.5 2V5.5Z" /></svg>
+                        <span>Sources ({sourceCount})</span>
+                        <svg className="message-action-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 5 5 5-5 5" /></svg>
+                      </button>
+                    )}
+                    {hasTrace && (
+                      <button type="button" aria-haspopup="dialog" aria-label="Open execution details" onClick={() => setDetails({ message, view: "execution" })}>
+                        <svg className="message-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2" /><circle cx="19" cy="6" r="2" /><circle cx="12" cy="18" r="2" /><path d="M7 6h10M6.5 7.5l4.4 8.7m6.6-8.7-4.4 8.7" /></svg>
+                        <span>Execution Details</span>
+                        <svg className="message-action-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 5 5 5-5 5" /></svg>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </article>
           ))}
 
-          {isLoading && <div className="loading" role="status" aria-live="polite"><span className="loading-dots" aria-hidden="true"><i /><i /><i /></span><span>Preparing your answer…</span></div>}
+          {isLoading && <div className="loading" role="status" aria-live="polite"><BoltLogo className="assistant-avatar loading-avatar" /><span className="loading-dots" aria-hidden="true"><i /><i /><i /></span><span>Preparing your answer…</span></div>}
         </div>
 
-        {DEVELOPMENT_PREVIEW && <p className="preview-notice" role="status">Development Markdown preview — remove <code>?preview=markdown</code> to return to chat.</p>}
-        {error && <p className="error" role="alert">{error}</p>}
-
-        <form className="composer" onSubmit={handleSubmit}>
-          <label htmlFor="message">What are you looking for?</label>
-          <div className="composer-row">
-            <input id="message" value={input} onChange={(event) => setInput(event.target.value)} placeholder="e.g. A practical EV for winter commuting" disabled={isLoading} autoComplete="off" />
-            <button type="submit" disabled={isLoading || !input.trim()}>{isLoading ? "Sending…" : "Send"}</button>
+        {failure && (
+          <div className={`request-status ${failure.stopped ? "stopped" : "error"}`} role={failure.stopped ? "status" : "alert"}>
+            <span>{failure.message}</span>
+            <button type="button" onClick={retryLastRequest} disabled={isLoading}>Retry</button>
           </div>
-        </form>
+        )}
+
+        {isLoading && <div className="generation-controls"><button type="button" onClick={stopGenerating}>Stop generating</button></div>}
+
+        {!isWelcome && <ChatComposer input={input} isLoading={isLoading} onInputChange={setInput} onSubmit={handleSubmit} />}
       </section>
+      {details && (
+        <DetailsPanel
+          view={details.view}
+          citations={details.message.citations ?? []}
+          agents={details.message.agentsInvoked ?? []}
+          tools={details.message.toolsCalled ?? []}
+          onChangeView={(view) => setDetails((current) => current ? { ...current, view } : current)}
+          onClose={() => setDetails(null)}
+        />
+      )}
     </main>
   );
 }

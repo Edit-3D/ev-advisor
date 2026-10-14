@@ -4,3 +4,7 @@ class AgentConfigurationError(RuntimeError):
 
 class AgentExecutionError(RuntimeError):
     """Raised when the agent workflow cannot complete safely."""
+
+
+class WorkflowCancelledError(RuntimeError):
+    """Raised when a disconnected client asks the workflow to stop cooperatively."""

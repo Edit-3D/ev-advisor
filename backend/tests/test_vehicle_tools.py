@@ -64,6 +64,25 @@ def test_search_filters_available_attributes(vehicles: list[Vehicle]) -> None:
         vehicles=vehicles,
     )
     assert [item["id"] for item in result["results"]] == ["volvo:one"]
+    assert result["results"][0]["source_url"] == "https://example.com/vehicle"
+    assert result["results"][0]["official_model_url"] is None
+    assert result["results"][0]["configuration_label"] == "Volvo Example (2025 Base)"
+
+
+def test_search_adds_reviewed_model_url_without_replacing_provenance() -> None:
+    ex30 = vehicle("volvo:ex30")
+    ex30.model = "EX30"
+    ex30.variant = "Single Motor"
+
+    result = search_vehicles(vehicles=[ex30])
+
+    assert result["results"][0]["source_url"] == "https://example.com/vehicle"
+    assert result["results"][0]["official_model_url"] == (
+        "https://www.volvocars.com/se/cars/ex30-electric/"
+    )
+    assert result["results"][0]["configuration_label"] == (
+        "Volvo EX30 (2025 Base — Single Motor)"
+    )
 
 
 def test_price_filter_is_currency_aware(vehicles: list[Vehicle]) -> None:
@@ -104,6 +123,24 @@ def test_comparison_reports_missing_values_and_unknown_ids(vehicles: list[Vehicl
     assert result["not_found_ids"] == ["missing:id"]
     assert "prices" in result["vehicles"][1]["missing_fields"]
     assert "dc_charging_kw" in result["vehicles"][1]["missing_fields"]
+    assert result["vehicles"][0]["source_url"] == "https://example.com/vehicle"
+    assert result["vehicles"][0]["official_model_url"] is None
+    assert result["vehicles"][0]["configuration_label"] == "Volvo Example (2025 Base)"
+
+
+def test_real_comparison_keeps_hyundai_specs_in_one_named_configuration() -> None:
+    result = compare_vehicles(
+        ["hyundai:ioniq_5:2025:ioniq_5", "volvo:ex30:2025:single_motor"]
+    )
+
+    hyundai = result["vehicles"][0]
+    assert hyundai["id"] == "hyundai:ioniq_5:2025:ioniq_5"
+    assert hyundai["configuration_label"] == "Hyundai IONIQ 5 (2025 Base)"
+    assert hyundai["battery_kwh"] == 72.6
+    assert hyundai["range_km"] == 507
+    assert hyundai["range_type"] == "wltp"
+    assert hyundai["dc_charging_kw"] == 220
+    assert hyundai["ac_charging_kw"] == 11
 
 
 def test_comparison_requires_two_unique_ids(vehicles: list[Vehicle]) -> None:
