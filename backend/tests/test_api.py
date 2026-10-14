@@ -1,9 +1,28 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from backend.app.main import app
+from backend.app.agents.workflow import get_workflow
+from backend.app.main import app, get_chat_workflow
 
 
 client = TestClient(app)
+
+
+class FakeWorkflow:
+    def invoke(self, message: str, conversation_id: str) -> dict:
+        return {
+            "reply": f"Agent response to: {message}",
+            "citations": [],
+            "agents_invoked": ["vehicle"],
+            "tools_called": ["search_vehicles"],
+        }
+
+
+@pytest.fixture(autouse=True)
+def fake_workflow() -> None:
+    app.dependency_overrides[get_chat_workflow] = lambda: FakeWorkflow()
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_health() -> None:
@@ -17,16 +36,38 @@ def test_chat() -> None:
     response = client.post("/chat", json={"message": "I need a family EV"})
 
     assert response.status_code == 200
-    assert response.json() == {
-        "reply": 'EV Advisor received: "I need a family EV". '
-        "Full advice is coming in Stage 2."
-    }
+    body = response.json()
+    assert body["reply"] == "Agent response to: I need a family EV"
+    assert body["conversation_id"]
+    assert body["agents_invoked"] == ["vehicle"]
+    assert body["tools_called"] == ["search_vehicles"]
+
+
+def test_chat_reuses_conversation_id() -> None:
+    response = client.post(
+        "/chat", json={"message": "Follow up", "conversation_id": "existing-session"}
+    )
+    assert response.status_code == 200
+    assert response.json()["conversation_id"] == "existing-session"
 
 
 def test_chat_rejects_empty_message() -> None:
     response = client.post("/chat", json={"message": ""})
 
     assert response.status_code == 422
+
+
+def test_chat_reports_missing_gemini_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app.dependency_overrides.pop(get_chat_workflow)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    get_workflow.cache_clear()
+
+    response = client.post("/chat", json={"message": "Hello"})
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "GEMINI_API_KEY is not configured on the backend."
 
 
 def test_local_frontend_is_allowed_by_cors() -> None:

@@ -34,7 +34,11 @@ button, input { font: inherit; }
 }
 
 .chat-header { display: flex; align-items: center; gap: 16px; padding: 24px 28px; border-bottom: 1px solid #e2ebe7; }
+.brand-copy { flex: 1; }
 .brand-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; color: white; background: #176b4b; font-weight: 800; }
+.new-chat { padding: 9px 13px; border: 1px solid #a9bdb5; border-radius: 10px; color: #176b4b; background: white; font-weight: 700; cursor: pointer; }
+.new-chat:hover:not(:disabled) { background: #edf5f1; }
+.new-chat:disabled { opacity: 0.5; cursor: not-allowed; }
 .eyebrow { margin: 0 0 3px; color: #587169; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 h1 { margin: 0; font-size: 1.6rem; }
 
@@ -47,6 +51,9 @@ h1 { margin: 0; font-size: 1.6rem; }
 .message.user { align-self: flex-end; }
 .message.user span { text-align: right; }
 .message.user p { color: white; background: #176b4b; border-bottom-right-radius: 5px; }
+.citations { margin: 8px 8px 0; padding-left: 18px; color: #587169; font-size: 0.78rem; }
+.citations li + li { margin-top: 4px; }
+.citations a { color: #176b4b; overflow-wrap: anywhere; }
 .loading { margin: 0; color: #587169; font-size: 0.9rem; }
 .error { margin: 0 28px 16px; padding: 11px 14px; border-radius: 10px; color: #8d2828; background: #fdeaea; }
 

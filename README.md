@@ -107,6 +107,60 @@ Run only the retrieval tests with:
 .\.venv\Scripts\python.exe -m pytest backend\tests\test_rag_retrieval.py
 ```
 
+## Gemini and LangGraph agents
+
+Stage 4 connects the existing tools through a Gemini-powered LangGraph workflow:
+
+```mermaid
+flowchart TD
+    U[User message + conversation ID] --> S[Gemini supervisor]
+    S -->|vehicle| V[Vehicle Agent: standalone]
+    S -->|research| R[Research Agent: standalone]
+    S -->|both| P{Parallel fan-out}
+    P --> VC[Vehicle Agent: collaborative]
+    P --> RC[Research Agent: collaborative]
+    VC --> Y[Gemini synthesis]
+    RC --> Y
+    S -->|direct conversation| D[Direct Gemini response]
+    V --> A[Answer + citations + observable trace]
+    R --> A
+    Y --> A
+    D --> A
+```
+
+The supervisor uses structured Gemini output to choose the Vehicle Agent, Research Agent, both, or a direct conversational response. It does not use keyword rules. A single specialist produces a complete standalone answer directly, avoiding an extra Gemini synthesis call. When both specialists are selected, LangGraph runs them concurrently in collaborative mode and waits for both before synthesis. The Vehicle Agent can dynamically call `search_vehicles`, `compare_vehicles`, and `calculate_charging_cost`; the Research Agent calls `search_ev_knowledge` and carries its original source URLs into the final response. Tool loops are bounded, and only observable agent/tool names—not hidden reasoning—are returned as trace metadata.
+
+Gemini runs only in the backend. Configure these values in the root `.env`:
+
+```dotenv
+GEMINI_API_KEY=your_api_key_here
+GEMINI_MODEL=gemini-3.1-flash-lite
+```
+
+`GEMINI_MODEL` is optional and defaults to `gemini-3.1-flash-lite`. The key is passed to Docker at runtime and is never included in either image or sent to the browser. For local development, load the file explicitly:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --env-file .env
+```
+
+LangGraph uses an in-memory checkpointer keyed by the `conversation_id` accepted and returned by `/chat`. Follow-up messages can reference earlier turns, while different IDs remain isolated. The frontend stores the returned ID for the active page session and offers **New Chat** to start over. Memory is lost whenever the backend restarts and is intentionally limited to recent messages supplied to Gemini.
+
+Example prompts:
+
+- `Find three Volvo EVs with at least 400 km rated range.`
+- `Compare the Tesla Model Y and Volvo EX30.`
+- `Why does cold weather reduce EV range?`
+- `Compare the Volvo EX30 and Hyundai IONIQ 5 for winter highway driving.`
+- Follow-up: `Which of those has faster DC charging?`
+
+Run all offline tests—Gemini is mocked through dependency injection—with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Known limitations: checkpoint memory is process-local and non-persistent; the curated vehicle data covers five manufacturers; knowledge and vehicle data are static rather than live market information; TF-IDF retrieval is lexical; and Gemini availability, latency, quotas, and tool-call behavior depend on the external API.
+
 ## Docker quick start
 
 ### Prerequisites
@@ -176,7 +230,7 @@ GEMINI_MODEL=gemini-3.1-flash-lite
 Start the API from the project root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --env-file .env
 ```
 
 The API is available at `http://localhost:8000`; interactive documentation is at `http://localhost:8000/docs`.
@@ -209,6 +263,16 @@ npm run build
 ## API endpoints
 
 - `GET /health` returns `{ "status": "ok" }`.
-- `POST /chat` accepts `{ "message": "..." }` and returns a Stage 1 placeholder reply.
+- `POST /chat` accepts a message and optional `conversation_id`, then returns the agent reply, conversation ID, citations, and observable agent/tool trace.
 
-Vehicle tools are currently Python functions rather than public API endpoints; `/health` and `/chat` remain unchanged.
+Vehicle and knowledge tools remain internal Python functions used by the agent workflow rather than public API endpoints.
+
+## Agent reliability diagnostics
+
+Gemini calls use a 60-second request timeout. The workflow retries only timeouts and retryable provider responses (`429`, `500`, `502`, `503`, and `504`), with at most two retries and exponential backoff. Validation, structured-output, tool-schema, and other application errors are not retried automatically.
+
+The backend emits a `workflow_diagnostics` JSON log after each request. It contains provider-call, agent-stage, synthesis, and tool timings plus retry and sanitized error metadata. It deliberately excludes prompts, replies, tool arguments/results, conversation identifiers, and credentials. Inspect it with:
+
+```powershell
+docker compose logs backend
+```
