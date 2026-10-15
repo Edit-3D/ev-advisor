@@ -76,12 +76,13 @@ Start Vite:
 npm run dev
 ```
 
-With either setup, use:
+### Access the Application
+
+After starting the application using either method, open:
 
 - Frontend: <http://localhost:5173>
 - API documentation: <http://localhost:8000/docs>
 - Health endpoint: <http://localhost:8000/health>
-
 
 ## Technology Stack
 
