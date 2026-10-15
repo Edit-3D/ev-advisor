@@ -18,9 +18,10 @@ type Theme = "dark" | "light";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const EXAMPLE_QUESTIONS = [
   { topic: "Find an EV", label: "Find EVs with 400+ km range", question: "Find electric SUVs with at least 400 km of range." },
-  { topic: "EV knowledge", label: "Why does cold reduce EV range?", question: "Why does cold weather reduce EV range?" },
+  { topic: "Compare EVs", label: "Compare Volvo EX30 and IONIQ 5", question: "Compare the Volvo EX30 and Hyundai IONIQ 5." },
   { topic: "Charging costs", label: "Calculate Volvo EX30 charging costs", question: "What does it cost to charge a Volvo EX30 from 20% to 80% at 3 SEK/kWh?" },
-  { topic: "Compare EVs", label: "Compare EVs for Swedish winters", question: "Compare the Volvo EX30 and Hyundai IONIQ 5 for winter driving in Sweden. Include range, charging speeds, and cold-weather effects." },
+  { topic: "EV knowledge", label: "Why does cold reduce EV range?", question: "Why does cold weather reduce EV range?" },
+  { topic: "Winter comparison", label: "Compare EVs for Swedish winters", question: "Compare the Volvo EX30 and Hyundai IONIQ 5 for winter driving in Sweden. Include range, charging speeds, and cold-weather effects." },
 ];
 const PREVIEW_MODE = import.meta.env.DEV && import.meta.env.VITE_PREVIEW_MODE === "true";
 

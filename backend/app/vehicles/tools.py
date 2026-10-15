@@ -13,13 +13,25 @@ def _data(vehicles: Iterable[Vehicle] | None, dataset_path: str | Path) -> list[
     return list(vehicles) if vehicles is not None else load_vehicles(dataset_path)
 
 
+def _normalized_label(value: str) -> str:
+    """Normalize user-facing labels without weakening exact field matching."""
+    return " ".join(value.split()).casefold()
+
+
 def _tool_vehicle(vehicle: Vehicle) -> dict[str, Any]:
     """Serialize a vehicle while preserving provenance and adding reviewed links."""
     data = vehicle.model_dump(mode="json")
-    configuration = f"{vehicle.year} {vehicle.trim}"
+    details = [vehicle.trim]
     if vehicle.variant and vehicle.variant.casefold() != vehicle.trim.casefold():
-        configuration = f"{configuration} — {vehicle.variant}"
-    data["configuration_label"] = f"{vehicle.brand} {vehicle.model} ({configuration})"
+        details = (
+            [vehicle.variant]
+            if vehicle.trim.casefold() == "base"
+            else [vehicle.trim, vehicle.variant]
+        )
+    configuration = " — ".join(details)
+    data["configuration_label"] = (
+        f"{vehicle.brand} {vehicle.model} {configuration} ({vehicle.year})"
+    )
     data["official_model_url"] = get_official_model_url(vehicle.brand, vehicle.model)
     return data
 
@@ -27,6 +39,10 @@ def _tool_vehicle(vehicle: Vehicle) -> dict[str, Any]:
 def search_vehicles(
     *,
     manufacturer: str | None = None,
+    model: str | None = None,
+    model_year: int | None = None,
+    trim: str | None = None,
+    variant: str | None = None,
     max_price: float | None = None,
     currency: str | None = None,
     minimum_range_km: float | None = None,
@@ -58,9 +74,20 @@ def search_vehicles(
     unavailable = {"price": 0, "range": 0}
     matches: list[Vehicle] = []
     for vehicle in _data(vehicles, dataset_path):
-        if manufacturer and vehicle.brand.casefold() != manufacturer.casefold():
+        if manufacturer and _normalized_label(vehicle.brand) != _normalized_label(manufacturer):
             continue
-        if body_type and (vehicle.body_type or "").casefold() != body_type.casefold():
+        if model and _normalized_label(vehicle.model) != _normalized_label(model):
+            continue
+        if model_year is not None and vehicle.year != model_year:
+            continue
+        if trim and _normalized_label(vehicle.trim) != _normalized_label(trim):
+            continue
+        if variant and (
+            vehicle.variant is None
+            or _normalized_label(vehicle.variant) != _normalized_label(variant)
+        ):
+            continue
+        if body_type and _normalized_label(vehicle.body_type or "") != _normalized_label(body_type):
             continue
         if minimum_battery_kwh is not None and vehicle.battery_kwh < minimum_battery_kwh:
             continue

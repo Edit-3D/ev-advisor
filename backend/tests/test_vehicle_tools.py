@@ -12,6 +12,10 @@ def vehicle(
     vehicle_id: str,
     *,
     brand: str = "Volvo",
+    model: str = "Example",
+    year: int = 2025,
+    trim: str = "Base",
+    variant: str | None = None,
     battery: float = 80,
     range_km: float = 500,
     body_type: str | None = "suv",
@@ -22,10 +26,10 @@ def vehicle(
         {
             "id": vehicle_id,
             "brand": brand,
-            "model": "Example",
-            "year": 2025,
-            "trim": "Base",
-            "variant": None,
+            "model": model,
+            "year": year,
+            "trim": trim,
+            "variant": variant,
             "battery_kwh": battery,
             "range_km": range_km,
             "range_type": "wltp",
@@ -66,7 +70,85 @@ def test_search_filters_available_attributes(vehicles: list[Vehicle]) -> None:
     assert [item["id"] for item in result["results"]] == ["volvo:one"]
     assert result["results"][0]["source_url"] == "https://example.com/vehicle"
     assert result["results"][0]["official_model_url"] is None
-    assert result["results"][0]["configuration_label"] == "Volvo Example (2025 Base)"
+    assert result["results"][0]["configuration_label"] == "Volvo Example Base (2025)"
+
+
+def test_search_filters_model_with_case_and_whitespace_tolerance() -> None:
+    candidates = [
+        vehicle("hyundai:ioniq5", brand="Hyundai", model="IONIQ 5"),
+        vehicle("hyundai:ioniq6", brand="Hyundai", model="IONIQ 6"),
+    ]
+
+    result = search_vehicles(model="  ioniq   5 ", vehicles=candidates)
+
+    assert [item["id"] for item in result["results"]] == ["hyundai:ioniq5"]
+
+
+def test_search_filters_model_year() -> None:
+    candidates = [
+        vehicle("volvo:2024", model="EX30", year=2024),
+        vehicle("volvo:2025", model="EX30", year=2025),
+    ]
+
+    result = search_vehicles(model="EX30", model_year=2024, vehicles=candidates)
+
+    assert [item["id"] for item in result["results"]] == ["volvo:2024"]
+
+
+def test_search_filters_trim_and_variant_as_distinct_fields() -> None:
+    candidates = [
+        vehicle("volvo:base", model="EX30", trim="Base"),
+        vehicle(
+            "volvo:performance",
+            model="EX30",
+            trim="Performance",
+            variant="Twin Motor Performance",
+        ),
+    ]
+
+    result = search_vehicles(
+        trim=" performance ",
+        variant="twin   motor performance",
+        vehicles=candidates,
+    )
+
+    assert [item["id"] for item in result["results"]] == ["volvo:performance"]
+
+
+def test_search_combines_identity_and_existing_specification_filters() -> None:
+    candidates = [
+        vehicle("match", brand="Volvo", model="EX30", year=2025, range_km=450),
+        vehicle("wrong-range", brand="Volvo", model="EX30", year=2025, range_km=350),
+        vehicle("wrong-model", brand="Volvo", model="EX40", year=2025, range_km=500),
+    ]
+
+    result = search_vehicles(
+        manufacturer="volvo",
+        model="ex30",
+        model_year=2025,
+        minimum_range_km=400,
+        body_type="SUV",
+        vehicles=candidates,
+    )
+
+    assert [item["id"] for item in result["results"]] == ["match"]
+
+
+def test_search_returns_empty_result_for_unknown_configuration(
+    vehicles: list[Vehicle],
+) -> None:
+    result = search_vehicles(model="Does Not Exist", model_year=2025, vehicles=vehicles)
+
+    assert result["count"] == 0
+    assert result["results"] == []
+
+
+def test_existing_search_without_identity_filters_is_unchanged(
+    vehicles: list[Vehicle],
+) -> None:
+    result = search_vehicles(manufacturer="Volvo", vehicles=vehicles)
+
+    assert [item["id"] for item in result["results"]] == ["volvo:one", "volvo:three"]
 
 
 def test_search_adds_reviewed_model_url_without_replacing_provenance() -> None:
@@ -81,8 +163,28 @@ def test_search_adds_reviewed_model_url_without_replacing_provenance() -> None:
         "https://www.volvocars.com/se/cars/ex30-electric/"
     )
     assert result["results"][0]["configuration_label"] == (
-        "Volvo EX30 (2025 Base — Single Motor)"
+        "Volvo EX30 Single Motor (2025)"
     )
+
+
+def test_configuration_labels_avoid_duplicates_and_preserve_distinct_details() -> None:
+    repeated = vehicle(
+        "bmw:i4:m50", brand="BMW", model="i4", trim="M50", variant="M50"
+    )
+    distinct = vehicle(
+        "volvo:ex30:performance",
+        model="EX30",
+        trim="Performance",
+        variant="Twin Motor Performance",
+    )
+
+    result = search_vehicles(vehicles=[repeated, distinct])
+
+    assert result["results"][0]["configuration_label"] == "BMW i4 M50 (2025)"
+    assert result["results"][1]["configuration_label"] == (
+        "Volvo EX30 Performance — Twin Motor Performance (2025)"
+    )
+    assert all(item["id"] not in item["configuration_label"] for item in result["results"])
 
 
 def test_price_filter_is_currency_aware(vehicles: list[Vehicle]) -> None:
@@ -125,7 +227,7 @@ def test_comparison_reports_missing_values_and_unknown_ids(vehicles: list[Vehicl
     assert "dc_charging_kw" in result["vehicles"][1]["missing_fields"]
     assert result["vehicles"][0]["source_url"] == "https://example.com/vehicle"
     assert result["vehicles"][0]["official_model_url"] is None
-    assert result["vehicles"][0]["configuration_label"] == "Volvo Example (2025 Base)"
+    assert result["vehicles"][0]["configuration_label"] == "Volvo Example Base (2025)"
 
 
 def test_real_comparison_keeps_hyundai_specs_in_one_named_configuration() -> None:
@@ -135,7 +237,7 @@ def test_real_comparison_keeps_hyundai_specs_in_one_named_configuration() -> Non
 
     hyundai = result["vehicles"][0]
     assert hyundai["id"] == "hyundai:ioniq_5:2025:ioniq_5"
-    assert hyundai["configuration_label"] == "Hyundai IONIQ 5 (2025 Base)"
+    assert hyundai["configuration_label"] == "Hyundai IONIQ 5 Base (2025)"
     assert hyundai["battery_kwh"] == 72.6
     assert hyundai["range_km"] == 507
     assert hyundai["range_type"] == "wltp"

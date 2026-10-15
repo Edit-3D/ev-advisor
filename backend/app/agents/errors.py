@@ -8,3 +8,7 @@ class AgentExecutionError(RuntimeError):
 
 class WorkflowCancelledError(RuntimeError):
     """Raised when a disconnected client asks the workflow to stop cooperatively."""
+
+
+class WorkflowDeadlineExceeded(TimeoutError):
+    """Raised before work that cannot finish inside the request time budget."""

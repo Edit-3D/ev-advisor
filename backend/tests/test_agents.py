@@ -4,8 +4,17 @@ from threading import Barrier, Event, Thread
 import pytest
 from langchain_core.messages import AIMessage
 
-from backend.app.agents.errors import AgentConfigurationError, AgentExecutionError
-from backend.app.agents.prompts import RESEARCH_PROMPT, SYNTHESIS_PROMPT, VEHICLE_PROMPT
+from backend.app.agents.errors import (
+    AgentConfigurationError,
+    AgentExecutionError,
+    WorkflowDeadlineExceeded,
+)
+from backend.app.agents.prompts import (
+    RESEARCH_PROMPT,
+    SUPERVISOR_PROMPT,
+    SYNTHESIS_PROMPT,
+    VEHICLE_PROMPT,
+)
 from backend.app.agents.tools import (
     charging_cost_tool,
     knowledge_search_tool,
@@ -18,8 +27,10 @@ from backend.app.agents.workflow import (
     _sanitize_source_links,
     _specific_source_urls,
     _strip_research_citations,
+    _without_official_model_urls,
     get_workflow,
 )
+from backend.app.vehicles.official_urls import get_official_model_url
 
 
 def workflow_for(destination: str) -> EVAdvisorWorkflow:
@@ -171,7 +182,11 @@ def test_normal_standalone_comparison_does_not_gain_an_unrequested_link() -> Non
         None,
         router_override=lambda messages: "vehicle",
         specialist_override=lambda name, messages: SpecialistResult(
-            f"The EX30 charges faster. [Official page]({official_url})",
+            (
+                "The EX30 charges faster.\n\n"
+                "For more information, visit the official manufacturer page:\n"
+                f"- [Volvo EX30 Official Model URL]({official_url})"
+            ),
             ["compare_vehicles"],
             [],
             [official_url],
@@ -180,8 +195,10 @@ def test_normal_standalone_comparison_does_not_gain_an_unrequested_link() -> Non
 
     result = workflow.invoke("Compare these vehicles", "comparison-without-links")
 
-    assert result["reply"] == "The EX30 charges faster. Official page"
+    assert result["reply"] == "The EX30 charges faster."
     assert official_url not in result["reply"]
+    assert "Official Model URL" not in result["reply"]
+    assert "For more information" not in result["reply"]
 
 
 def test_explicit_official_link_survives_standalone_validation() -> None:
@@ -226,7 +243,7 @@ def test_ordinary_combined_synthesis_removes_manufacturer_links() -> None:
     result = workflow.invoke("compare", "source-link-synthesis")
 
     assert volvo_url not in result["reply"]
-    assert "Volvo" in result["reply"]
+    assert "Volvo" not in result["reply"]
     assert "https://www.hyundai.com" not in result["reply"]
     assert "Hyundai" in result["reply"]
 
@@ -235,15 +252,38 @@ def test_prompts_forbid_reconstructed_source_links() -> None:
     assert "exact, non-null official_model_url returned by a vehicle" in VEHICLE_PROMPT
     assert "source_url field is immutable dataset provenance" in VEHICLE_PROMPT
     assert "never alter, localize, or reconstruct a URL" in SYNTHESIS_PROMPT
-    assert "Do not add manufacturer links by default" in VEHICLE_PROMPT
-    assert "when explicitly requested or genuinely useful" in SYNTHESIS_PROMPT
-    assert "exact configuration_label returned" in VEHICLE_PROMPT
+    assert "Do not mention manufacturer websites, links, URLs" in VEHICLE_PROMPT
+    assert "unless the user explicitly requests them in the current turn" in SYNTHESIS_PROMPT
+    assert "Manufacturer Model Trim/Variant (Year)" in VEHICLE_PROMPT
+    assert "never show them unless the user explicitly requests IDs" in VEHICLE_PROMPT
+    assert "Do not repeat this coverage" in VEHICLE_PROMPT
+    assert "requests an unsupported manufacturer" in VEHICLE_PROMPT
     assert "never merge trims or\nmodel years" in VEHICLE_PROMPT
     assert "other trims\nor model years may differ" in VEHICLE_PROMPT
     assert 'Do not automatically append a "For more details"' in VEHICLE_PROMPT
-    assert "Preserve exact configuration labels" in SYNTHESIS_PROMPT
+    assert "Preserve natural configuration names" in SYNTHESIS_PROMPT
+    assert "Do not expose internal vehicle IDs" in SYNTHESIS_PROMPT
     assert "displayed exclusively from structured metadata" in SYNTHESIS_PROMPT
     assert "Do not put research URLs" in RESEARCH_PROMPT
+    assert "contextual follow-ups" in SUPERVISOR_PROMPT
+    assert '"their links"' in SUPERVISOR_PROMPT
+
+
+def test_unrequested_tool_output_hides_official_urls_without_mutating_it() -> None:
+    official_url = "https://www.volvocars.com/se/cars/ex30-electric/"
+    output = {
+        "results": [{
+            "id": "volvo:ex30:2025:base",
+            "official_model_url": official_url,
+            "source_url": "https://example.com/provenance",
+        }]
+    }
+
+    redacted = _without_official_model_urls(output)
+
+    assert "official_model_url" not in redacted["results"][0]
+    assert redacted["results"][0]["source_url"] == "https://example.com/provenance"
+    assert output["results"][0]["official_model_url"] == official_url
 
 
 def test_rag_link_is_removed_when_unrequested_manufacturer_link_is_removed() -> None:
@@ -377,6 +417,8 @@ def test_research_citation_cleanup_preserves_markdown_and_manufacturer_links() -
     [
         ("Compare the Volvo EX30 and Hyundai IONIQ 5.", False),
         ("Recommend an EV for winter.", False),
+        ("Can you give me their links?", True),
+        ("Can you get me links?", True),
         ("Give me the official EX30 website.", True),
         ("Can I have the manufacturer URLs?", True),
         ("Link me to the IONIQ 5 page.", True),
@@ -387,6 +429,85 @@ def test_manufacturer_link_intent_comes_from_user_request(
     message: str, expected: bool
 ) -> None:
     assert _requests_manufacturer_links(message) is expected
+
+
+@pytest.mark.parametrize(
+    "follow_up",
+    [
+        "Their links?",
+        "Can you give me their links?",
+        "Can you get me links?",
+        "What are the official manufacturer websites?",
+    ],
+)
+def test_contextual_link_follow_ups_use_history_and_curated_urls(
+    follow_up: str,
+) -> None:
+    bmw_url = get_official_model_url("BMW", "i4")
+    tesla_url = get_official_model_url("Tesla", "Model 3")
+    assert bmw_url and tesla_url
+
+    def router(messages):
+        human_messages = [message.content for message in messages if message.type == "human"]
+        if len(human_messages) == 2:
+            assert human_messages[0] == "Compare the BMW i4 and Tesla Model 3."
+            assert human_messages[1] == follow_up
+        return "vehicle"
+
+    def specialist(name, messages):
+        human_messages = [message.content for message in messages if message.type == "human"]
+        if len(human_messages) == 1:
+            return SpecialistResult(
+                "The BMW i4 and Tesla Model 3 have different strengths.",
+                ["compare_vehicles"],
+                [],
+                [bmw_url, tesla_url],
+            )
+        return SpecialistResult(
+            f"- [BMW i4]({bmw_url})\n- [Tesla Model 3]({tesla_url})",
+            ["search_vehicles"],
+            [],
+            [bmw_url, tesla_url],
+        )
+
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=router,
+        specialist_override=specialist,
+    )
+    conversation_id = f"contextual-links-{abs(hash(follow_up))}"
+
+    first = workflow.invoke(
+        "Compare the BMW i4 and Tesla Model 3.", conversation_id
+    )
+    result = workflow.invoke(follow_up, conversation_id)
+
+    assert "http" not in first["reply"]
+    assert result["reply"] == (
+        f"- [BMW i4]({bmw_url})\n- [Tesla Model 3]({tesla_url})"
+    )
+    assert result["agents_invoked"] == ["vehicle"]
+    assert result["tools_called"] == ["search_vehicles"]
+
+
+def test_missing_curated_url_is_explained_without_fabrication() -> None:
+    invented_url = "https://manufacturer.example/not-reviewed"
+    workflow = EVAdvisorWorkflow(
+        None,
+        router_override=lambda messages: "vehicle",
+        specialist_override=lambda name, messages: SpecialistResult(
+            "The official manufacturer link is unavailable. "
+            f"[Unverified page]({invented_url})",
+            ["search_vehicles"],
+            [],
+            [],
+        ),
+    )
+
+    result = workflow.invoke("Give me the official model link", "missing-link")
+
+    assert "official manufacturer link is unavailable" in result["reply"]
+    assert invented_url not in result["reply"]
 
 
 def test_blank_tool_metadata_is_not_returned() -> None:
@@ -521,6 +642,23 @@ def test_existing_vehicle_and_research_tools_are_callable() -> None:
     assert cost["currency"] == "SEK"
 
 
+def test_precise_vehicle_filters_are_applied_before_result_limit() -> None:
+    result = vehicle_search_tool.invoke(
+        {
+            "manufacturer": " BMW ",
+            "model": "i4",
+            "model_year": 2024,
+            "trim": "m50",
+            "variant": " M50 ",
+            "limit": 10,
+        }
+    )
+
+    assert result["count"] == 1
+    assert result["returned_count"] == 1
+    assert result["results"][0]["id"] == "bmw:i4:2024:i4_m50"
+
+
 def test_invalid_tool_arguments_are_rejected() -> None:
     with pytest.raises(Exception):
         vehicle_search_tool.invoke({"max_price": 500_000, "limit": 2})
@@ -568,6 +706,17 @@ class TransientDirectModel:
         if self.calls == 1:
             raise TimeoutError("temporary provider timeout")
         return AIMessage(content="Recovered safely.")
+
+
+class AdvancingTimeoutModel:
+    def __init__(self, clock) -> None:
+        self.clock = clock
+        self.calls = 0
+
+    def invoke(self, messages):
+        self.calls += 1
+        self.clock.current += 10
+        raise TimeoutError("provider attempt timed out")
 
 
 class ModeCapturingModel:
@@ -629,6 +778,46 @@ def test_retryable_provider_timeout_is_retried_and_measured(monkeypatch) -> None
         False,
         True,
     ]
+
+
+def test_request_deadline_prevents_retry_that_cannot_finish(monkeypatch) -> None:
+    class Clock:
+        current = 100.0
+
+        def __call__(self) -> float:
+            return self.current
+
+    clock = Clock()
+    model = AdvancingTimeoutModel(clock)
+    workflow = EVAdvisorWorkflow(
+        model,
+        router_override=lambda messages: "direct",
+        request_budget_seconds=70,
+        provider_timeout_seconds=60,
+        clock=clock,
+    )
+    monkeypatch.setattr("backend.app.agents.workflow.random.uniform", lambda *_: 0)
+
+    with pytest.raises(AgentExecutionError) as raised:
+        workflow.invoke("Hello", "deadline-exhausted")
+
+    assert model.calls == 1
+    assert isinstance(raised.value.__cause__, WorkflowDeadlineExceeded)
+
+
+@pytest.mark.parametrize(
+    ("request_budget", "provider_timeout"),
+    [(0, 60), (165, 0)],
+)
+def test_request_deadline_configuration_must_be_positive(
+    request_budget: float, provider_timeout: float
+) -> None:
+    with pytest.raises(ValueError, match="greater than zero"):
+        EVAdvisorWorkflow(
+            DirectModel(),
+            request_budget_seconds=request_budget,
+            provider_timeout_seconds=provider_timeout,
+        )
 
 
 def test_agent_recovers_from_tool_validation_error() -> None:

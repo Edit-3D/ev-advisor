@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.agents.workflow import get_workflow
-from backend.app.agents.errors import AgentExecutionError
+from backend.app.agents.errors import AgentExecutionError, WorkflowDeadlineExceeded
 from backend.app.main import app, get_chat_workflow
 
 
@@ -86,6 +86,13 @@ class UnexpectedFailureWorkflow:
         raise AgentExecutionError("internal implementation detail")
 
 
+class DeadlineFailureWorkflow:
+    def invoke(self, message: str, conversation_id: str, **kwargs) -> dict:
+        raise AgentExecutionError("agent deadline reached") from WorkflowDeadlineExceeded(
+            "internal deadline detail"
+        )
+
+
 def test_chat_returns_safe_structured_provider_error() -> None:
     app.dependency_overrides[get_chat_workflow] = lambda: ProviderFailureWorkflow()
     response = client.post("/chat", json={"message": "Hello", "conversation_id": "provider-test"})
@@ -104,6 +111,20 @@ def test_chat_distinguishes_unexpected_server_failure() -> None:
 
     assert response.status_code == 500
     assert response.json()["detail"]["code"] == "generation_failed"
+
+
+def test_chat_returns_clear_request_deadline_error() -> None:
+    app.dependency_overrides[get_chat_workflow] = lambda: DeadlineFailureWorkflow()
+    response = client.post(
+        "/chat", json={"message": "Hello", "conversation_id": "deadline-test"}
+    )
+
+    assert response.status_code == 504
+    assert response.json()["detail"] == {
+        "code": "request_timeout",
+        "message": "This response took too long. Please try again.",
+    }
+    assert "internal deadline" not in response.text
 
 
 def test_local_frontend_is_allowed_by_cors() -> None:

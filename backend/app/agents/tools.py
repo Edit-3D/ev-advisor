@@ -13,6 +13,10 @@ from backend.app.vehicles.tools import (
 
 class VehicleSearchInput(BaseModel):
     manufacturer: str | None = None
+    model: str | None = None
+    model_year: int | None = Field(default=None, ge=1990, le=2100)
+    trim: str | None = None
+    variant: str | None = None
     max_price: float | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     minimum_range_km: float | None = Field(default=None, ge=0)
@@ -30,7 +34,7 @@ class VehicleSearchInput(BaseModel):
 
 @tool("search_vehicles", args_schema=VehicleSearchInput)
 def vehicle_search_tool(**arguments: Any) -> dict[str, Any]:
-    """Search curated EV configurations using explicit specification filters."""
+    """Search curated EV configurations by identity and specification filters."""
     limit = arguments.pop("limit", 5)
     result = search_vehicles(**arguments)
     result["results"] = result["results"][:limit]

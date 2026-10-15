@@ -26,6 +26,7 @@ from backend.app.agents.errors import (
     AgentConfigurationError,
     AgentExecutionError,
     WorkflowCancelledError,
+    WorkflowDeadlineExceeded,
 )
 from backend.app.agents.prompts import (
     COLLABORATIVE_MODE_PROMPT,
@@ -43,7 +44,11 @@ Destination = Literal["vehicle", "research", "both", "direct"]
 LOGGER = logging.getLogger(__name__)
 _DIAGNOSTICS: ContextVar[dict[str, Any] | None] = ContextVar("workflow_diagnostics", default=None)
 _CANCELLATION_EVENT: ContextVar[Event | None] = ContextVar("workflow_cancellation", default=None)
+_REQUEST_DEADLINE: ContextVar[float | None] = ContextVar("workflow_request_deadline", default=None)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+PROVIDER_REQUEST_TIMEOUT_SECONDS = 60.0
+REQUEST_BUDGET_SECONDS = 165.0
+DEADLINE_RESERVE_SECONDS = 5.0
 _MARKDOWN_HTTP_LINK = re.compile(r'\[([^\]]+)\]\((https?://[^\s)]+)(?:\s+"[^"]*")?\)')
 _MARKDOWN_HTTP_AUTOLINK = re.compile(r"<(https?://[^\s>]+)>")
 _BARE_HTTP_URL = re.compile(r"https?://[^\s<>()\]]+")
@@ -51,6 +56,10 @@ _RESEARCH_SOURCE_SECTION = re.compile(
     r"(?ims)^#{1,6}\s*(?:sources|references)\s*$.*?(?=^#{1,6}\s|\Z)"
 )
 _CITATION_MARKER = re.compile(r"(?i)(?<!\!)\[(?:source\s*)?\d+\]")
+_OFFICIAL_LINK_PLACEHOLDER_LINE = re.compile(
+    r"(?im)^.*\bofficial\s+(?:(?:manufacturer|model)\s+)?"
+    r"(?:url|link|page|website)s?\b.*(?:\n|$)"
+)
 _MANUFACTURER_LINK_REQUEST = re.compile(
     r"\b(?:link|links|url|urls|site|sites|website|websites|webpage|webpages|web\s+page|web\s+pages)\b",
     re.IGNORECASE,
@@ -128,11 +137,22 @@ def _specific_source_urls(value: Any) -> list[str]:
     return list(dict.fromkeys(urls))
 
 
-def _sanitize_source_links(text: str, allowed_urls: list[str]) -> str:
+def _sanitize_source_links(
+    text: str,
+    allowed_urls: list[str],
+    *,
+    blocked_urls: list[str] | None = None,
+    suppress_official_placeholders: bool = False,
+) -> str:
     """Keep generated Markdown links only when their URL exactly matches tool evidence."""
     allowed = set(allowed_urls)
+    blocked = set(blocked_urls or [])
     sanitized = _MARKDOWN_HTTP_LINK.sub(
-        lambda match: match.group(0) if match.group(2) in allowed else match.group(1),
+        lambda match: (
+            match.group(0)
+            if match.group(2) in allowed
+            else "" if match.group(2) in blocked else match.group(1)
+        ),
         text,
     )
     sanitized = _MARKDOWN_HTTP_AUTOLINK.sub(
@@ -146,7 +166,24 @@ def _sanitize_source_links(text: str, allowed_urls: list[str]) -> str:
         suffix = raw[len(url) :]
         return raw if url in allowed else suffix
 
-    return _BARE_HTTP_URL.sub(keep_allowed_bare_url, sanitized)
+    sanitized = _BARE_HTTP_URL.sub(keep_allowed_bare_url, sanitized)
+    if suppress_official_placeholders:
+        sanitized = _OFFICIAL_LINK_PLACEHOLDER_LINE.sub("", sanitized)
+    sanitized = re.sub(r"(?m)^[ \t]*(?:[-*+]|\d+\.)[ \t]*$", "", sanitized)
+    return re.sub(r"\n{3,}", "\n\n", sanitized).strip()
+
+
+def _without_official_model_urls(value: Any) -> Any:
+    """Hide curated response links from the model unless this turn requested them."""
+    if isinstance(value, dict):
+        return {
+            key: _without_official_model_urls(child)
+            for key, child in value.items()
+            if key != "official_model_url"
+        }
+    if isinstance(value, list):
+        return [_without_official_model_urls(child) for child in value]
+    return value
 
 
 def _strip_research_citations(
@@ -213,11 +250,19 @@ class EVAdvisorWorkflow:
         router_override: RouterOverride | None = None,
         specialist_override: SpecialistOverride | None = None,
         synthesis_override: SynthesisOverride | None = None,
+        request_budget_seconds: float = REQUEST_BUDGET_SECONDS,
+        provider_timeout_seconds: float = PROVIDER_REQUEST_TIMEOUT_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
+        if request_budget_seconds <= 0 or provider_timeout_seconds <= 0:
+            raise ValueError("request and provider timeouts must be greater than zero")
         self.model = model
         self.router_override = router_override
         self.specialist_override = specialist_override
         self.synthesis_override = synthesis_override
+        self.request_budget_seconds = request_budget_seconds
+        self.provider_timeout_seconds = provider_timeout_seconds
+        self._clock = clock
         self.graph = self._build_graph().compile(checkpointer=checkpointer or InMemorySaver())
 
     def _timed_invoke(self, stage: str, runnable: Any, messages: list[BaseMessage]) -> Any:
@@ -225,6 +270,7 @@ class EVAdvisorWorkflow:
         max_retries = 2
         for attempt in range(max_retries + 1):
             self._raise_if_cancelled()
+            self._require_time_for_provider_call()
             started = time.perf_counter()
             try:
                 result = runnable.invoke(messages)
@@ -254,9 +300,10 @@ class EVAdvisorWorkflow:
                     )
                 if not retryable or attempt == max_retries:
                     raise
+                delay = 0.5 * (2**attempt) + random.uniform(0, 0.1)
+                self._require_time_for_provider_call(additional_seconds=delay)
                 if diagnostics is not None:
                     diagnostics["retry_count"] += 1
-                delay = 0.5 * (2**attempt) + random.uniform(0, 0.1)
                 LOGGER.warning(
                     "gemini_retry stage=%s attempt=%d error_type=%s status=%s delay_s=%.2f",
                     stage, attempt + 1, type(error).__name__, status, delay,
@@ -272,6 +319,20 @@ class EVAdvisorWorkflow:
         cancellation = _CANCELLATION_EVENT.get()
         if cancellation is not None and cancellation.is_set():
             raise WorkflowCancelledError("The client disconnected.")
+
+    def _require_time_for_provider_call(self, additional_seconds: float = 0.0) -> None:
+        deadline = _REQUEST_DEADLINE.get()
+        if deadline is None:
+            return
+        required = (
+            additional_seconds
+            + self.provider_timeout_seconds
+            + DEADLINE_RESERVE_SECONDS
+        )
+        if deadline - self._clock() < required:
+            raise WorkflowDeadlineExceeded(
+                "The request time budget was exhausted before another AI call could start."
+            )
 
     def _record_stage(self, stage: str, started: float) -> None:
         diagnostics = _DIAGNOSTICS.get()
@@ -355,6 +416,7 @@ class EVAdvisorWorkflow:
         messages: list[BaseMessage],
         *,
         collaborative: bool,
+        expose_official_urls: bool = False,
     ) -> SpecialistResult:
         if self.specialist_override:
             return self.specialist_override(name, _history(messages))
@@ -407,7 +469,12 @@ class EVAdvisorWorkflow:
                                         "section_heading": item["section_heading"],
                                     }
                                 )
-                    content = json.dumps(output, ensure_ascii=False, default=str)
+                    model_output = (
+                        output
+                        if expose_official_urls
+                        else _without_official_model_urls(output)
+                    )
+                    content = json.dumps(model_output, ensure_ascii=False, default=str)
                     tool_success = True
                 except Exception as error:
                     content = json.dumps({"error": str(error)})
@@ -435,6 +502,9 @@ class EVAdvisorWorkflow:
                 VEHICLE_TOOLS,
                 state["messages"],
                 collaborative=state["destination"] == "both",
+                expose_official_urls=state.get(
+                    "manufacturer_links_requested", False
+                ),
             )
         finally:
             self._record_stage("vehicle_agent", started)
@@ -488,12 +558,15 @@ class EVAdvisorWorkflow:
             answer = _strip_research_citations(
                 answer, state.get("research_citations", [])
             )
-        source_urls: list[str] = []
-        if state["destination"] == "vehicle" and state.get(
-            "manufacturer_links_requested", False
-        ):
-            source_urls = state.get("vehicle_source_urls", [])
-        return {"messages": [AIMessage(content=_sanitize_source_links(answer, source_urls))]}
+        known_urls = state.get("vehicle_source_urls", [])
+        links_requested = state.get("manufacturer_links_requested", False)
+        source_urls = known_urls if state["destination"] == "vehicle" and links_requested else []
+        return {"messages": [AIMessage(content=_sanitize_source_links(
+            answer,
+            source_urls,
+            blocked_urls=known_urls if not links_requested else [],
+            suppress_official_placeholders=not links_requested,
+        ))]}
 
     def _synthesize(self, state: AgentState) -> dict[str, Any]:
         started = time.perf_counter()
@@ -522,10 +595,15 @@ class EVAdvisorWorkflow:
         answer = _strip_research_citations(
             answer, state.get("research_citations", [])
         )
-        allowed_urls: list[str] = []
-        if state.get("manufacturer_links_requested", False):
-            allowed_urls.extend(state.get("vehicle_source_urls", []))
-        return {"messages": [AIMessage(content=_sanitize_source_links(answer, allowed_urls))]}
+        known_urls = state.get("vehicle_source_urls", [])
+        links_requested = state.get("manufacturer_links_requested", False)
+        allowed_urls = known_urls if links_requested else []
+        return {"messages": [AIMessage(content=_sanitize_source_links(
+            answer,
+            allowed_urls,
+            blocked_urls=known_urls if not links_requested else [],
+            suppress_official_placeholders=not links_requested,
+        ))]}
 
     def invoke(
         self,
@@ -541,6 +619,9 @@ class EVAdvisorWorkflow:
         }
         token = _DIAGNOSTICS.set(diagnostics)
         cancellation_token = _CANCELLATION_EVENT.set(cancellation_event)
+        deadline_token = _REQUEST_DEADLINE.set(
+            self._clock() + self.request_budget_seconds
+        )
         try:
             self._raise_if_cancelled()
             config = {"configurable": {"thread_id": conversation_id}}
@@ -572,6 +653,7 @@ class EVAdvisorWorkflow:
             LOGGER.error("workflow_diagnostics %s", json.dumps(diagnostics, default=str))
             raise AgentExecutionError("The EV Advisor workflow failed.") from error
         finally:
+            _REQUEST_DEADLINE.reset(deadline_token)
             _CANCELLATION_EVENT.reset(cancellation_token)
             _DIAGNOSTICS.reset(token)
         diagnostics.update(total_duration_s=round(time.perf_counter() - started, 3), success=True)
@@ -607,7 +689,7 @@ def get_workflow() -> EVAdvisorWorkflow:
         model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
         api_key=api_key,
         temperature=0.1,
-        request_timeout=60,
+        request_timeout=PROVIDER_REQUEST_TIMEOUT_SECONDS,
         retries=0,
     )
     return EVAdvisorWorkflow(model)
