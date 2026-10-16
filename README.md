@@ -143,19 +143,23 @@ LangGraph coordinates execution based on Gemini's routing decisions. When both a
 
 RAG uses five curated Markdown documents, split into chunks and searched using TF-IDF and cosine similarity. Retrieved passages provide context for the Research Agent. The Sources panel displays deduplicated external references associated with those passages.
 
+
 ## Example Questions
 
-Actual routing depends on Gemini's decision, so these examples demonstrate capabilities rather than guarantee a particular execution trace.
+The following questions demonstrate the key capabilities required by the assignment, including tool usage, RAG retrieval, and multi-agent collaboration. These questions are also available as suggested prompts on the application's welcome screen for easy testing.
 
-| Capability | Example |
+Actual routing depends on Gemini's decisions, so execution paths may vary.
+
+
+| Assignment Capability | Example Question |
 | --- | --- |
-| Vehicle search | “Find electric SUVs with at least 400 km of range.” |
-| Vehicle comparison | “Compare the Volvo EX30 and Hyundai IONIQ 5.” |
-| Charging calculation | “What does it cost to charge a Volvo EX30 from 20% to 80% at 3 SEK/kWh?” |
-| RAG knowledge | “Why does cold weather reduce EV range?” |
-| Multi-agent collaboration | “Compare the Volvo EX30 and Hyundai IONIQ 5 for winter driving in Sweden. Include range, charging speeds, and cold-weather effects.” |
+| Tool use – Vehicle search | “Find electric SUVs with at least 400 km of range.” |
+| Tool use – Vehicle comparison | “Compare the Volvo EX30 and Hyundai IONIQ 5.” |
+| Tool use – Charging calculation | “What does it cost to charge a Volvo EX30 from 20% to 80% at 3 SEK/kWh?” |
+| RAG – Knowledge retrieval | “Why does cold weather reduce EV range?” |
+| Multi-agent collaboration – Tools + RAG | “Compare the Volvo EX30 and Hyundai IONIQ 5 for winter driving in Sweden. Include range, charging speeds, and cold-weather effects.” |
 
-The final example benefits from structured vehicle specifications and retrieved cold-weather guidance, which the two specialists can supply together.
+The final example combines structured vehicle specifications from the Vehicle Agent with retrieved cold-weather guidance from the Research Agent, demonstrating coordination between specialists.
 
 ## Testing
 
